@@ -81,8 +81,8 @@ export function LoginPage() {
         </p>
 
         <div className="mt-8 p-4 bg-secondary-50 rounded-2xl border border-secondary-100">
-          <p className="text-xs text-secondary-700 font-medium mb-2">Demo Accounts</p>
-          <p className="text-xs text-secondary-600">Sign up with any email and select a role to explore. Your account is created instantly.</p>
+          <p className="text-xs text-secondary-700 font-medium mb-2">Secure access</p>
+          <p className="text-xs text-secondary-600">Your role is assigned by the backend after authentication.</p>
         </div>
       </div>
     </div>
