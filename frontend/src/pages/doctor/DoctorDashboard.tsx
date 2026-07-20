@@ -236,7 +236,7 @@ export function DoctorDashboard() {
                     <div className="flex-1 min-w-0">
                       <p className="text-sm font-semibold text-neutral-800">{appt.patients?.full_name}</p>
                       <p className="text-xs text-neutral-400">
-                        {appt.patients?.patient_id} · {appt.appointment_time.slice(0, 5)}
+                        {appt.patients?.patient_id} · {appt.appointment_time ? appt.appointment_time.slice(0, 5) : '—'}
                       </p>
                       {appt.reason && <p className="text-xs text-neutral-500 mt-0.5 truncate">{appt.reason}</p>}
                     </div>
