@@ -122,7 +122,7 @@ export interface QueueToken {
   patients?: Patient
 }
 
-const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://your-render-backend.onrender.com/api/v1'
+const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || 'https://aarogya-bandhu.onrender.com/api/v1'
 
 class ApiClient {
   private token: string | null = null
