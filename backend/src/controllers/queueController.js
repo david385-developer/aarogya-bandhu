@@ -97,7 +97,7 @@ async function createQueueToken(req, res) {
         appointmentDate: today,
         appointmentTime: new Date().toTimeString().slice(0, 5),
         reason: `Queue Token #${token.tokenNumber}`,
-        status: 'confirmed',
+        status: 'scheduled',
       })
     }
   }
