@@ -86,7 +86,7 @@ export function PatientDashboard() {
         subtitle="Your health at a glance"
         headerRight={
           <div className="flex items-center gap-2">
-            <NotificationBell />
+            <NotificationBell navigateTo="/patient/notifications" />
             <button onClick={() => setShowQR(true)} className="p-2 rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors">
               <QrCode className="w-5 h-5" />
             </button>

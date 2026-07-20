@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { Bell, CheckCheck, Trash2, Calendar, FlaskConical, Pill, Info, CircleAlert as AlertCircle, Stethoscope, FileText, Ticket } from 'lucide-react'
 import { useNotifications } from '../lib/notifications'
 import { Modal } from './ui/Modal'
@@ -21,14 +22,23 @@ const typeConfig: Record<string, { icon: any; color: string; bg: string }> = {
   system: { icon: Info, color: 'text-neutral-600', bg: 'bg-neutral-100' },
 }
 
-export function NotificationBell({ className = '' }: { className?: string }) {
+export function NotificationBell({ className = '', navigateTo }: { className?: string; navigateTo?: string }) {
+  const navigate = useNavigate()
   const { notifications, unreadCount, markAsRead, markAllAsRead, deleteNotification } = useNotifications()
   const [isOpen, setIsOpen] = useState(false)
+
+  const handleClick = () => {
+    if (navigateTo) {
+      navigate(navigateTo)
+      return
+    }
+    setIsOpen(true)
+  }
 
   return (
     <>
       <button
-        onClick={() => setIsOpen(true)}
+        onClick={handleClick}
         className={`relative p-2 rounded-xl text-neutral-600 hover:text-primary-600 hover:bg-neutral-100/80 transition-all duration-200 ${className}`}
         aria-label="Notifications"
       >
