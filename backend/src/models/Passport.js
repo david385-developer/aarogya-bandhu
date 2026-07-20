@@ -13,7 +13,5 @@ const passportSchema = new mongoose.Schema(
   { timestamps: true },
 )
 
-passportSchema.index({ patientId: 1 }, { unique: true })
-passportSchema.index({ passportToken: 1 }, { unique: true })
 
 module.exports = mongoose.model('Passport', passportSchema)

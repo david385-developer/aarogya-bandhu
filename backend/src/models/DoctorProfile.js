@@ -14,8 +14,6 @@ const doctorProfileSchema = new mongoose.Schema(
   { timestamps: true },
 )
 
-doctorProfileSchema.index({ userId: 1 }, { unique: true })
-doctorProfileSchema.index({ doctorId: 1 }, { unique: true })
 doctorProfileSchema.index({ email: 1 })
 
 module.exports = mongoose.model('DoctorProfile', doctorProfileSchema)

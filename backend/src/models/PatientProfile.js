@@ -21,8 +21,6 @@ const patientProfileSchema = new mongoose.Schema(
   { timestamps: true },
 )
 
-patientProfileSchema.index({ userId: 1 }, { unique: true })
-patientProfileSchema.index({ patientId: 1 }, { unique: true })
 patientProfileSchema.index({ email: 1 })
 
 module.exports = mongoose.model('PatientProfile', patientProfileSchema)
