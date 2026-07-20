@@ -8,6 +8,7 @@ import { EmptyState } from './ui/EmptyState'
 import { api } from '../lib/api'
 import { useToast } from './ui/Toast'
 import { useAuth } from '../lib/auth'
+import { ReportViewerModal } from './ReportViewerModal'
 
 interface PatientWorkspaceModalProps {
   open: boolean
@@ -502,13 +503,13 @@ export function PatientWorkspaceModal({ open, onClose, data, onConsultationSaved
                           <Badge variant="primary">{file.category || 'General'}</Badge>
                         </div>
                         <p className="text-xs text-neutral-400 mt-0.5">
-                          Uploaded on {new Date(file.uploaded_at || file.uploadedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} · {file.mime_type || file.mimeType}
+                          Uploaded on {new Date(file.uploaded_at || file.uploadedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} by {file.uploaded_by || file.uploadedBy || 'Patient'} · {file.mime_type || file.mimeType}
                         </p>
                       </div>
                     </div>
                     <div className="flex items-center gap-2 flex-shrink-0">
                       <Button size="sm" variant="outline" leftIcon={<Eye className="w-3.5 h-3.5" />} onClick={() => setPreviewFile(file)}>
-                        Preview
+                        View
                       </Button>
                       <Button size="sm" variant="ghost" onClick={() => window.open(file.cloudinary_url || file.cloudinaryUrl, '_blank')} title="Download File">
                         <Download className="w-4 h-4 text-neutral-600" />
@@ -636,30 +637,11 @@ export function PatientWorkspaceModal({ open, onClose, data, onConsultationSaved
       </div>
 
       {/* Document Preview Modal inside Workspace */}
-      <Modal open={!!previewFile} onClose={() => setPreviewFile(null)} title={previewFile?.file_name || previewFile?.fileName || 'Document Preview'} size="lg">
-        {previewFile && (
-          <div className="space-y-4">
-            <div className="border border-neutral-200 rounded-2xl overflow-hidden bg-neutral-900 flex items-center justify-center min-h-[400px]">
-              {previewFile.mime_type?.startsWith('image/') || previewFile.cloudinary_url?.match(/\.(jpg|jpeg|png|webp|gif)$/i) || previewFile.cloudinaryUrl?.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
-                <img src={previewFile.cloudinary_url || previewFile.cloudinaryUrl} alt="Document" className="max-h-[60vh] object-contain" />
-              ) : previewFile.mime_type === 'application/pdf' || (previewFile.cloudinary_url || previewFile.cloudinaryUrl)?.endsWith('.pdf') ? (
-                <iframe src={previewFile.cloudinary_url || previewFile.cloudinaryUrl} title="Document Preview" className="w-full h-[60vh] bg-white border-0" />
-              ) : (
-                <div className="p-8 text-center text-white space-y-3">
-                  <FileText className="w-12 h-12 text-neutral-400 mx-auto" />
-                  <p className="text-sm">Preview not directly viewable. Download file.</p>
-                  <Button variant="outline" onClick={() => window.open(previewFile.cloudinary_url || previewFile.cloudinaryUrl, '_blank')} className="mt-2 text-white border-white">
-                    Download Document
-                  </Button>
-                </div>
-              )}
-            </div>
-            <Button variant="primary" fullWidth leftIcon={<Download className="w-4 h-4" />} onClick={() => window.open(previewFile.cloudinary_url || previewFile.cloudinaryUrl, '_blank')}>
-              Download / Open Document
-            </Button>
-          </div>
-        )}
-      </Modal>
+      <ReportViewerModal
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        file={previewFile}
+      />
     </Modal>
   )
 }

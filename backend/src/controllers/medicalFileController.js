@@ -89,9 +89,19 @@ async function uploadMedicalFile(req, res) {
 }
 
 async function listMyMedicalFiles(req, res) {
-  let patient = await PatientProfile.findOne({ userId: req.user._id })
-  if (!patient && req.query.patientId) {
-    patient = await PatientProfile.findById(req.query.patientId)
+  const targetId = req.params.patientId || req.query.patientId
+  let patient = null
+
+  if (targetId) {
+    patient =
+      (await PatientProfile.findById(targetId).catch(() => null)) ||
+      (await PatientProfile.findOne({ patientId: targetId })) ||
+      (await PatientProfile.findOne({ userId: targetId })) ||
+      (await PatientProfile.findOne({ email: targetId.toLowerCase() }))
+  }
+
+  if (!patient) {
+    patient = await PatientProfile.findOne({ userId: req.user._id })
   }
   if (!patient) {
     return res.status(200).json({ success: true, data: [] })
@@ -109,6 +119,7 @@ async function listMyMedicalFiles(req, res) {
     doc.mime_type = doc.mimeType
     doc.file_size = doc.fileSize
     doc.uploaded_at = doc.uploadedAt ? doc.uploadedAt.toISOString() : new Date().toISOString()
+    doc.uploaded_by = doc.uploadedBy
     return doc
   })
 

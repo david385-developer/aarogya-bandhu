@@ -10,6 +10,7 @@ import { api, Prescription, LabReport, MedicalFile } from '../../lib/api'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { useToast } from '../../components/ui/Toast'
+import { ReportViewerModal } from '../../components/ReportViewerModal'
 
 export function MedicalRecordsPage() {
   const { profile } = useAuth()
@@ -202,7 +203,7 @@ export function MedicalRecordsPage() {
                     leftIcon={<Eye className="w-3.5 h-3.5" />}
                     onClick={() => setPreviewFile(file)}
                   >
-                    Preview
+                    View
                   </Button>
                   <Button
                     variant="ghost"
@@ -403,44 +404,11 @@ export function MedicalRecordsPage() {
       </Modal>
 
       {/* Preview File Modal */}
-      <Modal open={!!previewFile} onClose={() => setPreviewFile(null)} title={previewFile?.file_name || 'Document Preview'} size="lg">
-        {previewFile && (
-          <div className="space-y-4">
-            <div className="flex items-center justify-between p-3 bg-neutral-50 rounded-xl">
-              <div>
-                <p className="text-xs text-neutral-400">Category & Type</p>
-                <p className="text-sm font-semibold text-neutral-800">{previewFile.category || 'General'} · {previewFile.mime_type}</p>
-              </div>
-              <div>
-                <p className="text-xs text-neutral-400">Upload Date</p>
-                <p className="text-sm font-medium text-neutral-800">
-                  {new Date(previewFile.uploaded_at).toLocaleDateString('en-IN', { day: 'numeric', month: 'long', year: 'numeric' })}
-                </p>
-              </div>
-            </div>
-
-            <div className="border border-neutral-200 rounded-2xl overflow-hidden bg-neutral-900 flex items-center justify-center min-h-[400px]">
-              {previewFile.mime_type?.startsWith('image/') || previewFile.cloudinary_url?.match(/\.(jpg|jpeg|png|webp|gif)$/i) ? (
-                <img src={previewFile.cloudinary_url} alt={previewFile.file_name} className="max-h-[60vh] object-contain" />
-              ) : previewFile.mime_type === 'application/pdf' || previewFile.cloudinary_url?.endsWith('.pdf') ? (
-                <iframe src={previewFile.cloudinary_url} title="Document Preview" className="w-full h-[60vh] bg-white border-0" />
-              ) : (
-                <div className="p-8 text-center text-white space-y-3">
-                  <FileText className="w-12 h-12 text-neutral-400 mx-auto" />
-                  <p className="text-sm">Preview not supported directly in browser for this file type.</p>
-                  <Button variant="outline" onClick={() => window.open(previewFile.cloudinary_url, '_blank')} className="mt-2 text-white border-white">
-                    Download File
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            <Button variant="primary" fullWidth leftIcon={<Download className="w-4 h-4" />} onClick={() => window.open(previewFile.cloudinary_url, '_blank')}>
-              Download / Open Original Document
-            </Button>
-          </div>
-        )}
-      </Modal>
+      <ReportViewerModal
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        file={previewFile}
+      />
 
       {/* Prescription Detail Modal */}
       <Modal open={!!selectedPresc} onClose={() => setSelectedPresc(null)} title="Prescription Details" size="lg">

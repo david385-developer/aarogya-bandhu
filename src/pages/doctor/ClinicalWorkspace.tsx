@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react'
 import { useParams, useNavigate } from 'react-router-dom'
-import { ChevronLeft, User, Droplet, Heart, Phone, CircleAlert as AlertCircle, Pill, FlaskConical, Clock, Activity, Sparkles, FileText, Stethoscope, Check, Plus, Calendar } from 'lucide-react'
+import { ChevronLeft, User, Droplet, Heart, Phone, CircleAlert as AlertCircle, Pill, FlaskConical, Clock, Activity, Sparkles, FileText, Stethoscope, Check, Plus, Calendar, Eye } from 'lucide-react'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
@@ -9,6 +9,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { useToast } from '../../components/ui/Toast'
 import { api, Patient, Prescription, LabReport, TimelineEvent } from '../../lib/api'
+import { ReportViewerModal } from '../../components/ReportViewerModal'
 
 export function ClinicalWorkspace() {
   const { patientId } = useParams()
@@ -18,6 +19,8 @@ export function ClinicalWorkspace() {
   const [prescriptions, setPrescriptions] = useState<Prescription[]>([])
   const [labReports, setLabReports] = useState<LabReport[]>([])
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
+  const [medicalFiles, setMedicalFiles] = useState<any[]>([])
+  const [previewFile, setPreviewFile] = useState<any | null>(null)
   const [loading, setLoading] = useState(true)
   const [activeSection, setActiveSection] = useState<'snapshot' | 'timeline' | 'history' | 'ai' | 'consult'>('snapshot')
   const [showConsultForm, setShowConsultForm] = useState(false)
@@ -34,15 +37,17 @@ export function ClinicalWorkspace() {
       if (!pat) { setLoading(false); return }
       setPatient(pat as Patient)
 
-      const [prescRes, labRes, tlRes] = await Promise.all([
+      const [prescRes, labRes, tlRes, filesRes] = await Promise.all([
         api.get(`/prescriptions?patientId=${patientId}`),
         api.get(`/lab-reports?patientId=${patientId}`),
         api.get(`/timeline?patientId=${patientId}`),
+        api.get(`/patients/${patientId}/medical-files`),
       ])
 
       setPrescriptions(prescRes.data as Prescription[] || [])
       setLabReports(labRes.data as LabReport[] || [])
       setTimeline(tlRes.data as TimelineEvent[] || [])
+      setMedicalFiles((filesRes.data as any[]) || [])
       setLoading(false)
     })()
   }, [patientId])
@@ -326,6 +331,37 @@ export function ClinicalWorkspace() {
             </div>
 
             <div>
+              <h3 className="text-sm font-semibold text-neutral-700 mb-3">Uploaded Medical Records</h3>
+              {medicalFiles.length === 0 ? (
+                <p className="text-sm text-neutral-400 text-center py-4">No medical records uploaded yet</p>
+              ) : (
+                <div className="space-y-2.5">
+                  {medicalFiles.map((file) => (
+                    <Card key={file.id || file._id} hover className="flex items-center justify-between gap-3">
+                      <div className="flex items-center gap-3 min-w-0 flex-1">
+                        <div className="w-9 h-9 rounded-xl bg-primary-50 flex items-center justify-center flex-shrink-0 border border-primary-100">
+                          <FileText className="w-4 h-4 text-primary-600" />
+                        </div>
+                        <div className="min-w-0 flex-1">
+                          <div className="flex items-center gap-2">
+                            <p className="text-sm font-semibold text-neutral-800 truncate">{file.file_name || file.fileName || 'Report'}</p>
+                            <Badge variant="primary">{file.category || 'General'}</Badge>
+                          </div>
+                          <p className="text-xs text-neutral-400 mt-0.5">
+                            Uploaded on {new Date(file.uploaded_at || file.uploadedAt).toLocaleDateString('en-IN', { day: 'numeric', month: 'short', year: 'numeric' })} by {file.uploaded_by || file.uploadedBy || 'Patient'} · {file.mime_type || file.mimeType}
+                          </p>
+                        </div>
+                      </div>
+                      <Button size="sm" variant="outline" leftIcon={<Eye className="w-3.5 h-3.5" />} onClick={() => setPreviewFile(file)}>
+                        View
+                      </Button>
+                    </Card>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            <div>
               <h3 className="text-sm font-semibold text-neutral-700 mb-3">Previous Lab Reports</h3>
               {labReports.length === 0 ? (
                 <p className="text-sm text-neutral-400 text-center py-4">No lab reports yet</p>
@@ -488,6 +524,12 @@ export function ClinicalWorkspace() {
           </Button>
         </div>
       </Modal>
+
+      <ReportViewerModal
+        open={!!previewFile}
+        onClose={() => setPreviewFile(null)}
+        file={previewFile}
+      />
     </div>
   )
 }

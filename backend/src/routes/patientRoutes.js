@@ -28,6 +28,7 @@ patientRoutes.get('/by-email/:email', requireAuth, asyncHandler(getPatientByEmai
 // Sub-resource endpoints for a specific patientId
 patientRoutes.get('/:patientId/consultations', requireAuth, asyncHandler(listConsultations))
 patientRoutes.get('/:patientId/prescriptions', requireAuth, asyncHandler(listPrescriptions))
+patientRoutes.get('/:patientId/medical-files', requireAuth, asyncHandler(listMyMedicalFiles))
 
 patientRoutes.get('/:id', requireAuth, asyncHandler(getPatientById))
 patientRoutes.patch('/:id', requireAuth, asyncHandler(updatePatient))
