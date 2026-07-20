@@ -2,7 +2,27 @@ const QueueToken = require('../models/QueueToken')
 const HealthEvent = require('../models/HealthEvent')
 const Notification = require('../models/Notification')
 const PatientProfile = require('../models/PatientProfile')
+const DoctorProfile = require('../models/DoctorProfile')
+const Appointment = require('../models/Appointment')
 const { AppError } = require('../utils/appError')
+
+async function resolvePatientProfile(value) {
+  if (!value) return null
+  return (
+    (await PatientProfile.findById(value).catch(() => null)) ||
+    (await PatientProfile.findOne({ patientId: value }).catch(() => null)) ||
+    (await PatientProfile.findOne({ userId: value }).catch(() => null))
+  )
+}
+
+async function resolveDoctorProfile(value) {
+  if (!value) return null
+  return (
+    (await DoctorProfile.findById(value).catch(() => null)) ||
+    (await DoctorProfile.findOne({ doctorId: value }).catch(() => null)) ||
+    (await DoctorProfile.findOne({ userId: value }).catch(() => null))
+  )
+}
 
 async function listQueueTokens(req, res) {
   const { doctorId, status } = req.query
@@ -29,9 +49,18 @@ async function listQueueTokens(req, res) {
 }
 
 async function createQueueToken(req, res) {
+  const rawPatientId = req.body.patient_id || req.body.patientId
+  const rawDoctorId = req.body.doctor_id || req.body.doctorId
+
+  const patient = await resolvePatientProfile(rawPatientId)
+  const doctor = await resolveDoctorProfile(rawDoctorId)
+
+  if (!patient) throw new AppError('Patient not found', 404)
+  if (!doctor) throw new AppError('Doctor not found', 404)
+
   const payload = {
-    patientId: req.body.patient_id || req.body.patientId,
-    doctorId: req.body.doctor_id || req.body.doctorId,
+    patientId: patient._id,
+    doctorId: doctor._id,
     tokenNumber: req.body.token_number || req.body.tokenNumber || 1,
     status: req.body.status || 'waiting',
   }
@@ -39,29 +68,88 @@ async function createQueueToken(req, res) {
   const token = await QueueToken.create(payload)
   const populated = await QueueToken.findById(token._id).populate('patientId').populate('doctorId')
 
-  const patient = await PatientProfile.findById(token.patientId)
-  if (patient) {
-    const event = await HealthEvent.create({
+  const today = new Date().toISOString().split('T')[0]
+  if (patient && doctor) {
+    const existingAppt = await Appointment.findOne({
       patientId: patient._id,
-      actorId: req.user._id,
-      actorRole: req.user.role,
-      eventType: 'CHECKED_IN',
+      doctorId: doctor._id,
+      appointmentDate: today,
+    })
+    if (!existingAppt) {
+      await Appointment.create({
+        patientId: patient._id,
+        doctorId: doctor._id,
+        appointmentDate: today,
+        appointmentTime: new Date().toTimeString().slice(0, 5),
+        reason: `Queue Token #${token.tokenNumber}`,
+        status: 'confirmed',
+      })
+    }
+  }
+
+  if (patient) {
+    // Generate QUEUE_TOKEN_GENERATED HealthEvent
+    const eventToken = await HealthEvent.create({
+      patientId: patient._id,
+      actorId: req.user ? req.user._id : patient.userId,
+      actorRole: req.user ? req.user.role : 'receptionist',
+      eventType: 'QUEUE_TOKEN_GENERATED',
       entityType: 'queueToken',
       entityId: String(token._id),
-      title: 'Patient Checked In',
-      description: `Token number #${token.tokenNumber} assigned for consultation.`,
+      title: `Queue Token #${token.tokenNumber} Generated`,
+      description: `Assigned for visit consultation.`,
       severity: 'info',
       sourceModule: 'reception',
     })
 
-    await Notification.create({
-      userId: patient.userId,
-      patientId: patient._id,
-      healthEventId: event._id,
-      type: 'check_in',
-      title: 'Token Assigned',
-      message: `You have been checked in with Token #${token.tokenNumber}. Please wait for your turn.`,
-    })
+    if (patient.userId) {
+      await Notification.create({
+        userId: patient.userId,
+        patientId: patient._id,
+        healthEventId: eventToken._id,
+        type: 'queue_token',
+        title: 'Queue Token Generated',
+        message: `Token #${token.tokenNumber} has been generated for your visit.`,
+      })
+    }
+
+    // Generate DOCTOR_ASSIGNED HealthEvent
+    if (doctor) {
+      const eventDoc = await HealthEvent.create({
+        patientId: patient._id,
+        actorId: req.user ? req.user._id : patient.userId,
+        actorRole: req.user ? req.user.role : 'receptionist',
+        eventType: 'DOCTOR_ASSIGNED',
+        entityType: 'queueToken',
+        entityId: String(token._id),
+        title: `Assigned to Dr. ${doctor.fullName || 'Doctor'}`,
+        description: `Consultation queue token #${token.tokenNumber}`,
+        severity: 'info',
+        sourceModule: 'reception',
+      })
+
+      if (patient.userId) {
+        await Notification.create({
+          userId: patient.userId,
+          patientId: patient._id,
+          healthEventId: eventDoc._id,
+          type: 'doctor_assigned',
+          title: 'Doctor Assigned',
+          message: `Dr. ${doctor.fullName || 'Doctor'} has been assigned for your consultation.`,
+        })
+      }
+
+      if (doctor.userId) {
+        await Notification.create({
+          userId: doctor.userId,
+          patientId: patient._id,
+          healthEventId: eventDoc._id,
+          type: 'doctor_assigned',
+          title: 'New Patient Assigned',
+          message: `${patient.fullName || 'Patient'} assigned to your queue with Token #${token.tokenNumber}.`,
+        })
+      }
+    }
   }
 
   const doc = populated.toObject()
@@ -80,6 +168,41 @@ async function updateQueueToken(req, res) {
     .populate('patientId')
     .populate('doctorId')
   if (!token) throw new AppError('Queue token not found', 404)
+
+  const patient = await resolvePatientProfile(token.patientId)
+  if (patient && req.body.status) {
+    const event = await HealthEvent.create({
+      patientId: patient._id,
+      actorId: req.user ? req.user._id : patient.userId,
+      actorRole: req.user ? req.user.role : 'doctor',
+      eventType: `QUEUE_TOKEN_${req.body.status.toUpperCase()}`,
+      entityType: 'queueToken',
+      entityId: String(token._id),
+      title: `Token #${token.tokenNumber} status: ${req.body.status}`,
+      description: `Queue token status updated to ${req.body.status}`,
+      severity: 'info',
+      sourceModule: 'clinical',
+    })
+
+    if (patient.userId) {
+      await Notification.create({
+        userId: patient.userId,
+        patientId: patient._id,
+        healthEventId: event._id,
+        type: 'queue_token',
+        title: `Token #${token.tokenNumber} ${req.body.status.toUpperCase()}`,
+        message: `Your consultation status is now ${req.body.status}.`,
+      })
+    }
+
+    if (token.doctorId && req.body.status === 'completed') {
+      const today = new Date().toISOString().split('T')[0]
+      await Appointment.updateMany(
+        { patientId: patient._id, doctorId: token.doctorId._id || token.doctorId, appointmentDate: today },
+        { status: 'completed' }
+      )
+    }
+  }
 
   const doc = token.toObject()
   doc.patients = doc.patientId

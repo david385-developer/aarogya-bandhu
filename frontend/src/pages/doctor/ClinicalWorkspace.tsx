@@ -8,7 +8,7 @@ import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { useToast } from '../../components/ui/Toast'
-import { api, Patient, Prescription, LabReport, TimelineEvent } from '../../lib/api'
+import { api, Patient, Prescription, LabReport, TimelineEvent, emitSyncRefresh, emitNotificationRefresh } from '../../lib/api'
 import { ReportViewerModal } from '../../components/ReportViewerModal'
 
 export function ClinicalWorkspace() {
@@ -100,6 +100,8 @@ export function ClinicalWorkspace() {
       ])
       setPrescriptions(prescRes.data as Prescription[] || [])
       setTimeline(tlRes.data as TimelineEvent[] || [])
+      emitNotificationRefresh()
+      emitSyncRefresh()
     }
   }
 
@@ -564,6 +566,8 @@ function LabRequestForm({ patientId, onDone }: { patientId: string; onDone: () =
 
     setTestName('')
     onDone()
+    emitNotificationRefresh()
+    emitSyncRefresh()
   }
 
   return (

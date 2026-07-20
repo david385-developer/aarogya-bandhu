@@ -9,7 +9,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useToast } from '../../components/ui/Toast'
-import { api, LabReport, Patient } from '../../lib/api'
+import { api, LabReport, Patient, emitSyncRefresh, emitNotificationRefresh } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 export function LabDashboard() {
@@ -70,6 +70,8 @@ export function LabDashboard() {
       setNotes('')
       setSelectedReport(null)
       fetchReports()
+      emitNotificationRefresh()
+      emitSyncRefresh()
     }
   }
 
@@ -77,6 +79,8 @@ export function LabDashboard() {
     await api.patch(`/lab-reports/${id}`, { status: 'verified' })
     toast('Report verified', 'success')
     fetchReports()
+    emitNotificationRefresh()
+    emitSyncRefresh()
   }
 
   const firstName = profile?.full_name?.split(' ')[0] || 'Lab'

@@ -156,6 +156,17 @@ async function createConsultation(req, res) {
       title: 'New Consultation Added',
       message: `Dr. ${doctorName.replace(/^Dr\.\s*/i, '')} has added a new consultation.`,
     })
+
+    if (prescription && event2) {
+      await Notification.create({
+        userId: patient.userId,
+        patientId: patient._id,
+        healthEventId: event2._id,
+        type: 'prescription',
+        title: 'Prescription Added',
+        message: `Dr. ${doctorName.replace(/^Dr\.\s*/i, '')} prescribed ${prescription.medications.length} medication(s).`,
+      })
+    }
   }
 
   if (req.user && req.user._id) {
@@ -165,7 +176,7 @@ async function createConsultation(req, res) {
       healthEventId: event1._id,
       type: 'CONSULTATION_CREATED',
       title: 'Consultation Saved',
-      message: 'Consultation saved successfully.',
+      message: `Consultation saved successfully for ${patient.fullName || 'Patient'}.`,
     })
   }
 

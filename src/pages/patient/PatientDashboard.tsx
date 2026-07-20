@@ -10,6 +10,7 @@ import { useAuth } from '../../lib/auth'
 import { api, Patient, Appointment, Prescription, LabReport, TimelineEvent } from '../../lib/api'
 import { QRPassport } from './QRPassport'
 import { AISummary } from './AISummary'
+import { NotificationBell } from '../../components/NotificationBell'
 
 export function PatientDashboard() {
   const { profile } = useAuth()
@@ -63,13 +64,15 @@ export function PatientDashboard() {
     loadDashboardData()
 
     // Real-time synchronization without page reload
-    const interval = setInterval(() => loadDashboardData(true), 8000)
+    const interval = setInterval(() => loadDashboardData(true), 4000)
     const handleFocus = () => loadDashboardData(true)
     window.addEventListener('focus', handleFocus)
+    window.addEventListener('sync-refresh', handleFocus)
 
     return () => {
       clearInterval(interval)
       window.removeEventListener('focus', handleFocus)
+      window.removeEventListener('sync-refresh', handleFocus)
     }
   }, [profile])
 
@@ -82,9 +85,12 @@ export function PatientDashboard() {
         title={`Hello, ${firstName}`}
         subtitle="Your health at a glance"
         headerRight={
-          <button onClick={() => setShowQR(true)} className="p-2 rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors">
-            <QrCode className="w-5 h-5" />
-          </button>
+          <div className="flex items-center gap-2">
+            <NotificationBell />
+            <button onClick={() => setShowQR(true)} className="p-2 rounded-xl bg-primary-50 text-primary-600 hover:bg-primary-100 transition-colors">
+              <QrCode className="w-5 h-5" />
+            </button>
+          </div>
         }
       >
         <div className="space-y-5 animate-fade-in">

@@ -10,8 +10,9 @@ import { Modal } from '../../components/ui/Modal'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useToast } from '../../components/ui/Toast'
-import { api, Patient, Doctor, QueueToken } from '../../lib/api'
+import { api, Patient, Doctor, QueueToken, emitSyncRefresh, emitNotificationRefresh } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
+import { NotificationBell } from '../../components/NotificationBell'
 
 export function ReceptionDashboard() {
   const { profile } = useAuth()
@@ -27,8 +28,8 @@ export function ReceptionDashboard() {
   const [assignDoctor, setAssignDoctor] = useState<string>('')
   const [showAssign, setShowAssign] = useState(false)
 
-  const loadData = async () => {
-    setLoading(true)
+  const loadData = async (silent = false) => {
+    if (!silent) setLoading(true)
     try {
       const [patRes, docRes, qRes] = await Promise.all([
         api.get('/patients').catch(() => ({ data: [] })),
@@ -43,12 +44,19 @@ export function ReceptionDashboard() {
     } catch {
       // Ignore
     } finally {
-      setLoading(false)
+      if (!silent) setLoading(false)
     }
   }
 
   useEffect(() => {
     loadData()
+    const interval = setInterval(() => loadData(true), 4000)
+    const handleSync = () => loadData(true)
+    window.addEventListener('sync-refresh', handleSync)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('sync-refresh', handleSync)
+    }
   }, [])
 
   useEffect(() => {
@@ -81,6 +89,8 @@ export function ReceptionDashboard() {
       toast(`Token #${maxToken + 1} generated for ${selectedPatient.full_name}`, 'success')
       setShowAssign(false)
       setAssignDoctor('')
+      emitNotificationRefresh()
+      emitSyncRefresh()
       const { data } = await api.get('/queue?status=waiting')
       setQueue(data as any || [])
     }

@@ -1,6 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ToastProvider } from './components/ui/Toast'
+import { NotificationProvider } from './lib/notifications'
 import { UserRole } from './lib/api'
 
 import { LoginPage } from './pages/auth/LoginPage'
@@ -56,7 +57,8 @@ export default function App() {
   return (
     <AuthProvider>
       <ToastProvider>
-        <Routes>
+        <NotificationProvider>
+          <Routes>
           {/* Auth */}
           <Route path="/login" element={<LoginPage />} />
           <Route path="/register" element={<RegisterPage />} />
@@ -103,6 +105,7 @@ export default function App() {
           {/* Default */}
           <Route path="*" element={<Navigate to="/login" replace />} />
         </Routes>
+        </NotificationProvider>
       </ToastProvider>
     </AuthProvider>
   )

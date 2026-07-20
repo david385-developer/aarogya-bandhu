@@ -6,7 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useAuth } from '../../lib/auth'
-import { api, Prescription, LabReport, MedicalFile } from '../../lib/api'
+import { api, Prescription, LabReport, MedicalFile, emitSyncRefresh, emitNotificationRefresh } from '../../lib/api'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 import { useToast } from '../../components/ui/Toast'
@@ -97,6 +97,8 @@ export function MedicalRecordsPage() {
       setSelectedFile(null)
       setCustomFileName('')
       loadData()
+      emitNotificationRefresh()
+      emitSyncRefresh()
     }
   }
 

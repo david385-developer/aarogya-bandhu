@@ -4,7 +4,7 @@ const notificationSchema = new mongoose.Schema(
   {
     userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true, index: true },
     patientId: { type: mongoose.Schema.Types.ObjectId, ref: 'PatientProfile', default: null },
-    healthEventId: { type: mongoose.Schema.Types.ObjectId, ref: 'HealthEvent', required: true },
+    healthEventId: { type: mongoose.Schema.Types.ObjectId, ref: 'HealthEvent', default: null },
     type: { type: String, required: true, trim: true },
     title: { type: String, required: true, trim: true },
     message: { type: String, required: true, trim: true },

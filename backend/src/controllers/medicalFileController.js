@@ -77,9 +77,21 @@ async function uploadMedicalFile(req, res) {
     healthEventId: healthEvent._id,
     type: 'MEDICAL_RECORD_UPLOADED',
     title: 'Medical Record Uploaded',
-    message: 'Medical record uploaded successfully',
+    message: 'Medical record uploaded successfully.',
     isRead: false,
   })
+
+  if (patient.userId && String(patient.userId) !== String(req.user._id)) {
+    await Notification.create({
+      userId: patient.userId,
+      patientId: patient._id,
+      healthEventId: healthEvent._id,
+      type: 'MEDICAL_RECORD_UPLOADED',
+      title: 'New Medical Record Added',
+      message: `${medicalFile.fileName || 'Report'} uploaded to your medical records.`,
+      isRead: false,
+    })
+  }
 
   res.status(201).json({
     success: true,

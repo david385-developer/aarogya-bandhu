@@ -5,7 +5,7 @@ import { Badge } from './ui/Badge'
 import { Card } from './ui/Card'
 import { Button } from './ui/Button'
 import { EmptyState } from './ui/EmptyState'
-import { api } from '../lib/api'
+import { api, emitSyncRefresh, emitNotificationRefresh } from '../lib/api'
 import { useToast } from './ui/Toast'
 import { useAuth } from '../lib/auth'
 import { ReportViewerModal } from './ReportViewerModal'
@@ -120,6 +120,8 @@ export function PatientWorkspaceModal({ open, onClose, data, onConsultationSaved
         if (onConsultationSaved) {
           onConsultationSaved(newCons)
         }
+        emitNotificationRefresh()
+        emitSyncRefresh()
       }
     } catch (err: any) {
       setSavingLoading(false)

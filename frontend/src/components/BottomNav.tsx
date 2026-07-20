@@ -1,6 +1,7 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Chrome as Home, Clock, FileText, Bell, User, LayoutDashboard, Users, Stethoscope, ClipboardList, FlaskConical, ChartBar as BarChart3, Settings, CalendarDays } from 'lucide-react'
 import { UserRole } from '../lib/api'
+import { useNotifications } from '../lib/notifications'
 
 interface NavItem {
   label: string
@@ -48,6 +49,13 @@ export function BottomNav({ role }: { role: UserRole }) {
   const location = useLocation()
   const navigate = useNavigate()
   const items = navConfig[role]
+  let unreadCount = 0
+  try {
+    const notif = useNotifications()
+    unreadCount = notif.unreadCount || 0
+  } catch {
+    // fallback if outside provider
+  }
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-40 bg-white/90 backdrop-blur-lg border-t border-neutral-100 safe-bottom">
@@ -62,16 +70,23 @@ export function BottomNav({ role }: { role: UserRole }) {
             <button
               key={item.path}
               onClick={() => navigate(item.path)}
-              className={`flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all duration-200 min-w-[56px] ${
+              className={`relative flex flex-col items-center gap-0.5 px-2 py-1.5 rounded-lg transition-all duration-200 min-w-[56px] ${
                 isExactActive || (isActive && item.path !== `/${role}`)
                   ? 'text-primary-600'
                   : 'text-neutral-400 hover:text-neutral-600'
               }`}
             >
-              <Icon
-                className={`w-5 h-5 transition-transform duration-200 ${isExactActive ? 'scale-110' : ''}`}
-                strokeWidth={isExactActive ? 2.5 : 2}
-              />
+              <div className="relative">
+                <Icon
+                  className={`w-5 h-5 transition-transform duration-200 ${isExactActive ? 'scale-110' : ''}`}
+                  strokeWidth={isExactActive ? 2.5 : 2}
+                />
+                {item.label === 'Alerts' && unreadCount > 0 && (
+                  <span className="absolute -top-1.5 -right-2 min-w-[16px] h-[16px] px-1 bg-error-500 text-white text-[9px] font-bold rounded-full flex items-center justify-center border border-white">
+                    {unreadCount > 99 ? '99+' : unreadCount}
+                  </span>
+                )}
+              </div>
               <span className={`text-[10px] font-medium ${isExactActive ? 'font-semibold' : ''}`}>{item.label}</span>
             </button>
           )

@@ -5,12 +5,47 @@ async function listNotifications(req, res) {
   const notifications = await Notification.find({ userId: req.user._id }).sort({ createdAt: -1 })
   const formatted = notifications.map((n) => {
     const doc = n.toObject()
+    doc.id = doc._id
     doc.user_id = doc.userId
     doc.is_read = doc.isRead
+    doc.health_event_id = doc.healthEventId || null
+    doc.healthEventId = doc.healthEventId || null
     doc.created_at = doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString()
+    doc.createdAt = doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString()
     return doc
   })
   res.status(200).json({ success: true, data: formatted })
+}
+
+async function getUnreadCount(req, res) {
+  const count = await Notification.countDocuments({ userId: req.user._id, isRead: false })
+  res.status(200).json({ success: true, count, data: { count } })
+}
+
+async function markRead(req, res) {
+  const { id } = req.params
+  const notification = await Notification.findOneAndUpdate(
+    { _id: id, userId: req.user._id },
+    { isRead: true, readAt: new Date() },
+    { new: true }
+  )
+  if (!notification) throw new AppError('Notification not found', 404)
+
+  const doc = notification.toObject()
+  doc.id = doc._id
+  doc.user_id = doc.userId
+  doc.is_read = doc.isRead
+  doc.health_event_id = doc.healthEventId || null
+  doc.healthEventId = doc.healthEventId || null
+  doc.created_at = doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString()
+  doc.createdAt = doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString()
+
+  res.status(200).json({ success: true, data: doc })
+}
+
+async function markAllRead(req, res) {
+  await Notification.updateMany({ userId: req.user._id, isRead: false }, { isRead: true, readAt: new Date() })
+  res.status(200).json({ success: true, message: 'All notifications marked as read' })
 }
 
 async function updateNotification(req, res) {
@@ -25,9 +60,13 @@ async function updateNotification(req, res) {
   if (!notification) throw new AppError('Notification not found', 404)
 
   const doc = notification.toObject()
+  doc.id = doc._id
   doc.user_id = doc.userId
   doc.is_read = doc.isRead
+  doc.health_event_id = doc.healthEventId || null
+  doc.healthEventId = doc.healthEventId || null
   doc.created_at = doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString()
+  doc.createdAt = doc.createdAt ? doc.createdAt.toISOString() : new Date().toISOString()
 
   res.status(200).json({ success: true, data: doc })
 }
@@ -39,4 +78,11 @@ async function deleteNotification(req, res) {
   res.status(200).json({ success: true, message: 'Notification deleted' })
 }
 
-module.exports = { listNotifications, updateNotification, deleteNotification }
+module.exports = {
+  listNotifications,
+  getUnreadCount,
+  markRead,
+  markAllRead,
+  updateNotification,
+  deleteNotification,
+}

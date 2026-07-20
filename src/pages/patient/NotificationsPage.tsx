@@ -6,7 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useAuth } from '../../lib/auth'
-import { api, Notification } from '../../lib/api'
+import { api, Notification, emitNotificationRefresh, emitSyncRefresh } from '../../lib/api'
 
 const typeConfig: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
   appointment: { icon: Calendar, color: 'text-primary-600', bg: 'bg-primary-50' },
@@ -34,11 +34,14 @@ export function NotificationsPage() {
   const markAsRead = async (id: string) => {
     await api.patch(`/notifications/${id}`, { is_read: true })
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
+    emitNotificationRefresh()
   }
 
   const deleteNotif = async (id: string) => {
     await api.delete(`/notifications/${id}`)
     setNotifications(prev => prev.filter(n => n.id !== id))
+    emitNotificationRefresh()
+    emitSyncRefresh()
   }
 
   return (

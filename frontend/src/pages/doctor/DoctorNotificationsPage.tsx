@@ -4,7 +4,7 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useAuth } from '../../lib/auth'
-import { api, Notification } from '../../lib/api'
+import { api, Notification, emitNotificationRefresh, emitSyncRefresh } from '../../lib/api'
 import { useEffect, useState } from 'react'
 
 const typeConfig: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
@@ -33,6 +33,8 @@ export function DoctorNotificationsPage() {
   const deleteNotif = async (id: string) => {
     await api.delete(`/notifications/${id}`)
     setNotifications(prev => prev.filter(n => n.id !== id))
+    emitNotificationRefresh()
+    emitSyncRefresh()
   }
 
   return (

@@ -119,7 +119,11 @@ export interface Notification {
   message: string
   type: string
   is_read: boolean
+  isRead?: boolean
   created_at: string
+  createdAt?: string
+  health_event_id?: string
+  healthEventId?: string
 }
 
 export interface QueueToken {
@@ -152,6 +156,19 @@ export interface QRPassportData {
   qrPayload: Record<string, any>
   status: string
   version: number
+}
+
+const SYNC_EVENT_NAME = 'sync-refresh'
+const NOTIFICATION_EVENT_NAME = 'notification-refresh'
+
+export function emitSyncRefresh() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(SYNC_EVENT_NAME))
+}
+
+export function emitNotificationRefresh() {
+  if (typeof window === 'undefined') return
+  window.dispatchEvent(new Event(NOTIFICATION_EVENT_NAME))
 }
 
 const API_BASE_URL = import.meta.env.VITE_API_BASE_URL || (typeof window !== 'undefined' && window.location.hostname === 'localhost' ? 'http://localhost:4000/api/v1' : 'https://aarogya-bandhu.onrender.com/api/v1')

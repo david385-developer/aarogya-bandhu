@@ -2,6 +2,7 @@ const Appointment = require('../models/Appointment')
 const HealthEvent = require('../models/HealthEvent')
 const Notification = require('../models/Notification')
 const PatientProfile = require('../models/PatientProfile')
+const DoctorProfile = require('../models/DoctorProfile')
 const { AppError } = require('../utils/appError')
 
 async function listAppointments(req, res) {
@@ -45,14 +46,30 @@ async function createAppointment(req, res) {
       sourceModule: 'appointment',
     })
 
-    await Notification.create({
-      userId: patient.userId,
-      patientId: patient._id,
-      healthEventId: event._id,
-      type: 'appointment',
-      title: 'New Appointment Scheduled',
-      message: `Your appointment is scheduled for ${appointment.appointmentDate} at ${appointment.appointmentTime}`,
-    })
+    if (patient.userId) {
+      await Notification.create({
+        userId: patient.userId,
+        patientId: patient._id,
+        healthEventId: event._id,
+        type: 'appointment',
+        title: 'New Appointment Scheduled',
+        message: `Your appointment is scheduled for ${appointment.appointmentDate} at ${appointment.appointmentTime}.`,
+      })
+    }
+
+    if (appointment.doctorId) {
+      const doctor = await DoctorProfile.findById(appointment.doctorId).catch(() => null)
+      if (doctor && doctor.userId) {
+        await Notification.create({
+          userId: doctor.userId,
+          patientId: patient._id,
+          healthEventId: event._id,
+          type: 'appointment',
+          title: 'New Appointment Scheduled',
+          message: `Appointment scheduled with ${patient.fullName || 'Patient'} on ${appointment.appointmentDate} at ${appointment.appointmentTime}.`,
+        })
+      }
+    }
   }
 
   const doc = populated.toObject()

@@ -12,6 +12,7 @@ import { useAuth } from '../../lib/auth'
 import { api, Patient, Appointment } from '../../lib/api'
 import { useToast } from '../../components/ui/Toast'
 import { PatientWorkspaceModal } from '../../components/PatientWorkspaceModal'
+import { NotificationBell } from '../../components/NotificationBell'
 
 export function DoctorDashboard() {
   const { profile } = useAuth()
@@ -34,24 +35,60 @@ export function DoctorDashboard() {
   const [cameraActive, setCameraActive] = useState(false)
   const videoRef = useRef<HTMLVideoElement>(null)
 
+  const loadDoctorData = async (isBackground = false) => {
+    if (!profile?.email) return
+    if (!isBackground) setLoading(true)
+    try {
+      const dashboardRes = await api.get('/doctors/me/dashboard').catch(() => null)
+      if (dashboardRes?.data) {
+        const data = dashboardRes.data
+        if (data.doctor?.id || data.doctor?._id) setDoctorId(data.doctor.id || data.doctor._id)
+        const assigned = data.assignedPatients || data.todaysAppointments || []
+        setPatients(assigned as any || [])
+        setRecentConsultations(data.recentConsultations || [])
+      } else {
+        const { data: doc } = await api.get(`/doctors/by-email/${encodeURIComponent(profile.email)}`)
+        if (!doc) {
+          if (!isBackground) setLoading(false)
+          return
+        }
+        setDoctorId(doc.id)
+        const [apptRes, qRes, consRes, rxRes] = await Promise.all([
+          api.get(`/appointments?doctorId=${doc.id}&date=${new Date().toISOString().split('T')[0]}`),
+          api.get(`/queue?doctorId=${doc.id}&status=waiting`),
+          api.get(`/consultations?doctorId=${doc.id}`),
+          api.get(`/prescriptions?doctorId=${doc.id}`),
+        ])
+        const appts = (apptRes.data as any[]) || []
+        const qs = (qRes.data as any[]) || []
+        const combinedMap = new Map()
+        appts.forEach((a) => combinedMap.set(String(a.patient_id || a.patientId?._id || a.id), a))
+        qs.forEach((q) => {
+          const pId = String(q.patient_id || q.patientId?._id || q.id)
+          if (!combinedMap.has(pId)) combinedMap.set(pId, q)
+        })
+        setPatients(Array.from(combinedMap.values()))
+        setRecentConsultations((consRes.data as any[]) || [])
+        setRecentPrescriptions((rxRes.data as any[]) || [])
+      }
+    } catch {
+      // ignore
+    } finally {
+      if (!isBackground) setLoading(false)
+    }
+  }
+
   useEffect(() => {
-    (async () => {
-      if (!profile?.email) return
-      const { data: doc } = await api.get(`/doctors/by-email/${encodeURIComponent(profile.email)}`)
-      if (!doc) { setLoading(false); return }
-      setDoctorId(doc.id)
-
-      const [apptRes, consRes, rxRes] = await Promise.all([
-        api.get(`/appointments?doctorId=${doc.id}&date=${new Date().toISOString().split('T')[0]}`),
-        api.get(`/consultations?doctorId=${doc.id}`),
-        api.get(`/prescriptions?doctorId=${doc.id}`),
-      ])
-
-      setPatients(apptRes.data as any || [])
-      setRecentConsultations((consRes.data as any[]) || [])
-      setRecentPrescriptions((rxRes.data as any[]) || [])
-      setLoading(false)
-    })()
+    loadDoctorData()
+    const interval = setInterval(() => {
+      loadDoctorData(true)
+    }, 4000)
+    const handleSync = () => loadDoctorData(true)
+    window.addEventListener('sync-refresh', handleSync)
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('sync-refresh', handleSync)
+    }
   }, [profile])
 
   // Camera Barcode Scanner Loop
@@ -144,7 +181,8 @@ export function DoctorDashboard() {
       title={`Dr. ${firstName}`}
       subtitle="Today's Patient Queue"
       headerRight={
-        <div className="flex items-center gap-3">
+        <div className="flex items-center gap-2">
+          <NotificationBell />
           <Button
             onClick={() => setShowScannerModal(true)}
             leftIcon={<QrCode className="w-4 h-4" />}

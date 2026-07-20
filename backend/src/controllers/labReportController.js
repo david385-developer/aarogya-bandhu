@@ -2,6 +2,7 @@ const LabReport = require('../models/LabReport')
 const HealthEvent = require('../models/HealthEvent')
 const Notification = require('../models/Notification')
 const PatientProfile = require('../models/PatientProfile')
+const DoctorProfile = require('../models/DoctorProfile')
 const { AppError } = require('../utils/appError')
 
 async function listLabReports(req, res) {
@@ -44,14 +45,30 @@ async function createLabReport(req, res) {
       sourceModule: 'laboratory',
     })
 
-    await Notification.create({
-      userId: patient.userId,
-      patientId: patient._id,
-      healthEventId: event._id,
-      type: 'lab_report',
-      title: 'New Lab Report Available',
-      message: `Your lab report for ${report.testName} is now available.`,
-    })
+    if (patient.userId) {
+      await Notification.create({
+        userId: patient.userId,
+        patientId: patient._id,
+        healthEventId: event._id,
+        type: 'lab_report',
+        title: 'New Lab Report Available',
+        message: `Your lab report for ${report.testName} is now available.`,
+      })
+    }
+
+    if (report.doctorId) {
+      const doctor = await DoctorProfile.findById(report.doctorId).catch(() => null)
+      if (doctor && doctor.userId) {
+        await Notification.create({
+          userId: doctor.userId,
+          patientId: patient._id,
+          healthEventId: event._id,
+          type: 'lab_report',
+          title: 'Lab Report Uploaded',
+          message: `Lab report (${report.testName}) uploaded for ${patient.fullName || 'Patient'}.`,
+        })
+      }
+    }
   }
 
   const doc = populated.toObject()
@@ -83,14 +100,31 @@ async function updateLabReport(req, res) {
       sourceModule: 'laboratory',
     })
 
-    await Notification.create({
-      userId: patient.userId,
-      patientId: patient._id,
-      healthEventId: event._id,
-      type: 'lab_report',
-      title: `Lab Report ${req.body.status === 'verified' ? 'Verified' : 'Updated'}`,
-      message: `Your lab report for ${report.testName} status is now ${report.status}.`,
-    })
+    if (patient.userId) {
+      await Notification.create({
+        userId: patient.userId,
+        patientId: patient._id,
+        healthEventId: event._id,
+        type: 'lab_report',
+        title: `Lab Report ${req.body.status === 'verified' ? 'Verified' : 'Updated'}`,
+        message: `Your lab report for ${report.testName} status is now ${report.status}.`,
+      })
+    }
+
+    if (report.doctorId) {
+      const doctorIdVal = report.doctorId._id || report.doctorId
+      const doctor = await DoctorProfile.findById(doctorIdVal).catch(() => null)
+      if (doctor && doctor.userId) {
+        await Notification.create({
+          userId: doctor.userId,
+          patientId: patient._id,
+          healthEventId: event._id,
+          type: 'lab_report',
+          title: `Lab Report ${req.body.status === 'verified' ? 'Verified' : 'Updated'}`,
+          message: `Lab report (${report.testName}) status updated to ${report.status} for ${patient.fullName || 'Patient'}.`,
+        })
+      }
+    }
   }
 
   const doc = report.toObject()
