@@ -1,10 +1,46 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = import.meta.env.VITE_SUPABASE_URL
-const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
+const supabaseUrl = import.meta.env.VITE_SUPABASE_URL || 'https://decxbayjtcgqzgfmclfz.supabase.co'
+const supabaseAnonKey = import.meta.env.VITE_SUPABASE_ANON_KEY || 'eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRlY3hiYXlqdGNncXpnZm1jbGZ6Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODM5NzM5MzgsImV4cCI6MjA5OTU0OTkzOH0.E7TOxXe_S_3_UWgwIZp-LKld4OzHENI87CX5-7rvQ-0'
+
+const memoryStorage: Record<string, string> = {}
+
+const customStorage = {
+  getItem: (key: string): string | null => {
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        return window.localStorage.getItem(key)
+      }
+    } catch {
+      // Fallback if localStorage throws SecurityError on restricted/mobile devices
+    }
+    return memoryStorage[key] || null
+  },
+  setItem: (key: string, value: string): void => {
+    memoryStorage[key] = value
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.setItem(key, value)
+      }
+    } catch {
+      // Ignore errors on restricted/mobile devices
+    }
+  },
+  removeItem: (key: string): void => {
+    delete memoryStorage[key]
+    try {
+      if (typeof window !== 'undefined' && window.localStorage) {
+        window.localStorage.removeItem(key)
+      }
+    } catch {
+      // Ignore errors on restricted/mobile devices
+    }
+  },
+}
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey, {
   auth: {
+    storage: customStorage,
     persistSession: true,
     autoRefreshToken: true,
     detectSessionInUrl: true,
