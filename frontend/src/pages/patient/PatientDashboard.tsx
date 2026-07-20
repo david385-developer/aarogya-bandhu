@@ -17,36 +17,60 @@ export function PatientDashboard() {
   const [patient, setPatient] = useState<Patient | null>(null)
   const [appointment, setAppointment] = useState<Appointment | null>(null)
   const [prescription, setPrescription] = useState<Prescription | null>(null)
+  const [consultation, setConsultation] = useState<any | null>(null)
   const [labReport, setLabReport] = useState<LabReport | null>(null)
   const [timeline, setTimeline] = useState<TimelineEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [showQR, setShowQR] = useState(false)
 
-  useEffect(() => {
-    (async () => {
-      if (!profile?.email) return
+  const loadDashboardData = async (silent = false) => {
+    if (!profile?.email) {
+      if (profile?.profile) setPatient(profile.profile as Patient)
+      if (!silent) setLoading(false)
+      return
+    }
+    if (!silent && !patient) setLoading(true)
+    try {
       const { data: pat } = await api.get(`/patients/by-email/${encodeURIComponent(profile.email)}`)
-
-      if (!pat) {
-        setLoading(false)
+      const effectivePat = pat || profile?.profile || null
+      if (!effectivePat) {
+        if (!silent) setLoading(false)
         return
       }
+      setPatient(effectivePat as Patient)
 
-      setPatient(pat as Patient)
-
-      const [apptRes, prescRes, labRes, tlRes] = await Promise.all([
-        api.get(`/appointments?patientId=${pat.id}`),
-        api.get(`/prescriptions?patientId=${pat.id}`),
-        api.get(`/lab-reports?patientId=${pat.id}`),
-        api.get(`/timeline?patientId=${pat.id}`),
+      const pid = effectivePat.id || (effectivePat as any)._id
+      const [apptRes, prescRes, labRes, tlRes, consRes] = await Promise.all([
+        api.get(`/appointments?patientId=${pid}`),
+        api.get(`/prescriptions?patientId=${pid}`),
+        api.get(`/lab-reports?patientId=${pid}`),
+        api.get(`/timeline?patientId=${pid}`),
+        api.get('/patients/me/consultations'),
       ])
 
       if (apptRes.data && apptRes.data.length > 0) setAppointment(apptRes.data[0] as Appointment)
       if (prescRes.data && prescRes.data.length > 0) setPrescription(prescRes.data[0] as Prescription)
+      if (consRes.data && consRes.data.length > 0) setConsultation(consRes.data[0])
       if (labRes.data && labRes.data.length > 0) setLabReport(labRes.data[0] as LabReport)
-      if (tlRes.data) setTimeline(tlRes.data.slice(0, 5) as TimelineEvent[])
-      setLoading(false)
-    })()
+      if (tlRes.data) setTimeline((tlRes.data as TimelineEvent[]).slice(0, 5))
+    } catch {
+      if (!patient && profile?.profile) setPatient(profile.profile as Patient)
+    }
+    if (!silent) setLoading(false)
+  }
+
+  useEffect(() => {
+    loadDashboardData()
+
+    // Real-time synchronization without page reload
+    const interval = setInterval(() => loadDashboardData(true), 8000)
+    const handleFocus = () => loadDashboardData(true)
+    window.addEventListener('focus', handleFocus)
+
+    return () => {
+      clearInterval(interval)
+      window.removeEventListener('focus', handleFocus)
+    }
   }, [profile])
 
   const firstName = profile?.full_name?.split(' ')[0] || 'there'
@@ -65,7 +89,19 @@ export function PatientDashboard() {
       >
         <div className="space-y-5 animate-fade-in">
           {/* Health Status Card */}
-          {patient && (
+          {loading && !patient ? (
+            <SkeletonCard />
+          ) : !patient ? (
+            <Card padding="md" className="border-l-4 border-l-error-500">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-neutral-800">Unable to load health details</p>
+                  <p className="text-xs text-neutral-400">Please retry or check your connection</p>
+                </div>
+                <Button size="sm" variant="outline" onClick={() => loadDashboardData()}>Retry</Button>
+              </div>
+            </Card>
+          ) : (
             <div className="bg-gradient-to-br from-primary-600 to-primary-700 rounded-2xl p-5 text-white shadow-soft-lg relative overflow-hidden">
               <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -translate-y-12 translate-x-12" />
               <div className="absolute bottom-0 left-0 w-24 h-24 bg-secondary-400/20 rounded-full translate-y-8 -translate-x-8" />
@@ -73,18 +109,18 @@ export function PatientDashboard() {
                 <div className="flex items-center justify-between mb-4">
                   <div>
                     <p className="text-xs text-primary-100 font-medium">Patient ID</p>
-                    <p className="text-sm font-semibold">{patient.patient_id}</p>
+                    <p className="text-sm font-semibold">{patient.patient_id || (patient as any).patientId || 'PT-XXXX'}</p>
                   </div>
                   <Badge variant="success" dot>Active</Badge>
                 </div>
                 <div className="grid grid-cols-3 gap-3">
                   <div>
                     <p className="text-xs text-primary-100">Blood</p>
-                    <p className="text-lg font-bold">{patient.blood_group || '—'}</p>
+                    <p className="text-lg font-bold">{patient.blood_group || (patient as any).bloodGroup || '—'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-primary-100">Age</p>
-                    <p className="text-lg font-bold">{patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : '—'}</p>
+                    <p className="text-lg font-bold">{(patient.date_of_birth || (patient as any).dateOfBirth) ? new Date().getFullYear() - new Date(patient.date_of_birth || (patient as any).dateOfBirth).getFullYear() : '—'}</p>
                   </div>
                   <div>
                     <p className="text-xs text-primary-100">Status</p>
@@ -148,11 +184,35 @@ export function PatientDashboard() {
           {/* AI Summary */}
           {patient && <AISummary patient={patient} />}
 
+          {/* Latest Consultation Card */}
+          {loading ? null : consultation ? (
+            <Card hover onClick={() => navigate('/patient/records')} className="cursor-pointer border-l-4 border-l-primary-500">
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <div className="w-10 h-10 rounded-xl bg-primary-50 flex items-center justify-center">
+                    <Stethoscope className="w-5 h-5 text-primary-600" />
+                  </div>
+                  <div>
+                    <p className="text-xs text-neutral-400">Latest Doctor Consultation</p>
+                    <p className="text-sm font-bold text-neutral-800">{consultation.diagnosis || 'Clinical Visit'}</p>
+                  </div>
+                </div>
+                <ChevronRight className="w-4 h-4 text-neutral-300" />
+              </div>
+              {consultation.notes && <p className="text-xs text-neutral-600 mb-2">{consultation.notes}</p>}
+              {consultation.followUpDate && (
+                <div className="pt-2 border-t border-neutral-100 flex items-center gap-1.5 text-xs text-warning-700 font-medium">
+                  <Clock className="w-3.5 h-3.5" /> Follow-up Recommended: {consultation.followUpDate}
+                </div>
+              )}
+            </Card>
+          ) : null}
+
           {/* Latest Prescription */}
           {loading ? (
             <SkeletonCard />
           ) : prescription ? (
-            <Card hover>
+            <Card hover onClick={() => navigate('/patient/records')} className="cursor-pointer">
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center gap-2">
                   <div className="w-10 h-10 rounded-xl bg-accent-50 flex items-center justify-center">
@@ -166,9 +226,9 @@ export function PatientDashboard() {
                 <ChevronRight className="w-4 h-4 text-neutral-300" />
               </div>
               <div className="space-y-1.5">
-                {prescription.medications.slice(0, 3).map((med, i) => (
+                {(prescription.medications || []).slice(0, 3).map((med, i) => (
                   <div key={i} className="flex items-center justify-between text-xs">
-                    <span className="text-neutral-700 font-medium">{med.name}</span>
+                    <span className="text-neutral-700 font-medium">{med.name || (med as any).medicineName}</span>
                     <span className="text-neutral-400">{med.dosage} · {med.frequency}</span>
                   </div>
                 ))}
@@ -220,20 +280,24 @@ export function PatientDashboard() {
               </div>
             ) : timeline.length > 0 ? (
               <div className="space-y-2">
-                {timeline.slice(0, 3).map((event) => (
-                  <Card key={event.id} padding="sm" hover className="flex items-center gap-3">
-                    <div className="w-9 h-9 rounded-lg bg-neutral-100 flex items-center justify-center flex-shrink-0">
-                      <TimelineIcon type={event.event_type} />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-medium text-neutral-800 truncate">{event.title}</p>
-                      <p className="text-xs text-neutral-400">
-                        {new Date(event.event_date).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {event.event_time.slice(0, 5)}
-                      </p>
-                    </div>
-                    <Badge variant={event.status === 'completed' ? 'success' : 'warning'}>{event.status}</Badge>
-                  </Card>
-                ))}
+                {timeline.slice(0, 3).map((event) => {
+                  const isCons = event.event_type === 'consultation' || (event as any).eventType === 'CONSULTATION_CREATED'
+                  const isRx = event.event_type === 'prescription' || (event as any).eventType === 'PRESCRIPTION_CREATED'
+                  return (
+                    <Card key={event.id || (event as any)._id} padding="sm" hover className="flex items-center gap-3">
+                      <div className="w-9 h-9 rounded-lg bg-neutral-100 flex items-center justify-center flex-shrink-0">
+                        <TimelineIcon type={event.event_type || (isCons ? 'consultation' : isRx ? 'prescription' : 'visit')} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-neutral-800 truncate">{event.title}</p>
+                        <p className="text-xs text-neutral-400">
+                          {new Date(event.event_date || (event as any).createdAt || Date.now()).toLocaleDateString('en-IN', { day: 'numeric', month: 'short' })} · {(event.event_time || '').slice(0, 5)}
+                        </p>
+                      </div>
+                      <Badge variant={event.status === 'completed' ? 'success' : 'warning'}>{event.status || 'completed'}</Badge>
+                    </Card>
+                  )
+                })}
               </div>
             ) : (
               <Card><p className="text-sm text-neutral-400 text-center py-4">No timeline events yet</p></Card>

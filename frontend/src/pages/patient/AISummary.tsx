@@ -6,7 +6,12 @@ interface AISummaryProps {
 }
 
 export function AISummary({ patient }: AISummaryProps) {
-  const age = patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : null
+  if (!patient) return null
+  const dob = patient.date_of_birth || (patient as any).dateOfBirth
+  const age = dob ? new Date().getFullYear() - new Date(dob).getFullYear() : null
+  const chronicDiseases = patient.chronic_diseases || (patient as any).chronicDiseases || []
+  const currentMedications = patient.current_medications || (patient as any).currentMedications || []
+  const allergies = patient.allergies || []
 
   return (
     <div className="bg-gradient-to-br from-secondary-50 to-white rounded-2xl border border-secondary-100 p-5 shadow-card">
@@ -29,15 +34,15 @@ export function AISummary({ patient }: AISummaryProps) {
           <div>
             <p className="text-xs font-medium text-neutral-700">Overall Health Status</p>
             <p className="text-xs text-neutral-500 mt-0.5">
-              {patient.chronic_diseases.length > 0
-                ? `Managing ${patient.chronic_diseases.join(', ')}. Condition is stable with current treatment plan.`
+              {chronicDiseases.length > 0
+                ? `Managing ${chronicDiseases.join(', ')}. Condition is stable with current treatment plan.`
                 : 'No chronic conditions detected. Health indicators are within normal range.'}
             </p>
           </div>
         </div>
 
         {/* Medications */}
-        {patient.current_medications.length > 0 && (
+        {currentMedications.length > 0 && (
           <div className="flex items-start gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-accent-50 flex items-center justify-center flex-shrink-0 mt-0.5">
               <Heart className="w-3.5 h-3.5 text-accent-600" />
@@ -45,14 +50,14 @@ export function AISummary({ patient }: AISummaryProps) {
             <div>
               <p className="text-xs font-medium text-neutral-700">Current Medications</p>
               <p className="text-xs text-neutral-500 mt-0.5">
-                {patient.current_medications.length} active medication{patient.current_medications.length > 1 ? 's' : ''}. Adherence rate: 92%. Continue as prescribed.
+                {currentMedications.length} active medication{currentMedications.length > 1 ? 's' : ''}. Adherence rate: 92%. Continue as prescribed.
               </p>
             </div>
           </div>
         )}
 
         {/* Allergy Warning */}
-        {patient.allergies.length > 0 && (
+        {allergies.length > 0 && (
           <div className="flex items-start gap-2.5">
             <div className="w-7 h-7 rounded-lg bg-error-50 flex items-center justify-center flex-shrink-0 mt-0.5">
               <AlertCircle className="w-3.5 h-3.5 text-error-500" />

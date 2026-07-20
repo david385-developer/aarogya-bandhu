@@ -5,9 +5,25 @@ const PatientProfile = require('../models/PatientProfile')
 const { AppError } = require('../utils/appError')
 
 async function listPrescriptions(req, res) {
-  const { patientId, doctorId } = req.query
+  const patientId = req.params.patientId || req.query.patientId
+  const { doctorId } = req.query
   const filter = {}
-  if (patientId) filter.patientId = patientId
+
+  if (patientId) {
+    const patient =
+      (await PatientProfile.findById(patientId).catch(() => null)) ||
+      (await PatientProfile.findOne({ patientId: patientId })) ||
+      (await PatientProfile.findOne({ userId: patientId }))
+    if (patient) {
+      filter.patientId = patient._id
+    } else {
+      filter.patientId = patientId
+    }
+  } else if (req.user && req.user.role === 'patient') {
+    const patient = await PatientProfile.findOne({ userId: req.user._id })
+    if (patient) filter.patientId = patient._id
+  }
+
   if (doctorId) filter.doctorId = doctorId
 
   const prescriptions = await Prescription.find(filter)

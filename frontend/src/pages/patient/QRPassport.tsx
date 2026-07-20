@@ -1,6 +1,7 @@
+import { useEffect, useState } from 'react'
 import { QRCodeSVG } from 'qrcode.react'
-import { X, Heart, Phone, Droplet, CircleAlert as AlertCircle, Activity } from 'lucide-react'
-import { Patient } from '../../lib/api'
+import { X, Phone, Droplet, CircleAlert as AlertCircle, Activity } from 'lucide-react'
+import { Patient, api } from '../../lib/api'
 
 interface QRPassportProps {
   patient: Patient
@@ -8,15 +9,30 @@ interface QRPassportProps {
 }
 
 export function QRPassport({ patient, onClose }: QRPassportProps) {
+  const [passportToken, setPassportToken] = useState<string>('')
+  const [encryptedId, setEncryptedId] = useState<string>('')
+  const [loading, setLoading] = useState<boolean>(true)
+
+  useEffect(() => {
+    (async () => {
+      const res = await api.get('/passport/my-qr')
+      if (res.data?.passport) {
+        setPassportToken(res.data.passport.passportToken)
+        setEncryptedId(res.data.passport.qrPayload?.checksum || '')
+      } else {
+        setPassportToken(patient.patient_id)
+      }
+      setLoading(false)
+    })()
+  }, [patient])
+
   const age = patient.date_of_birth ? new Date().getFullYear() - new Date(patient.date_of_birth).getFullYear() : '—'
-  const qrData = JSON.stringify({
-    pid: patient.patient_id,
-    name: patient.full_name,
-    blood: patient.blood_group,
-    age,
-    gender: patient.gender,
-    allergies: patient.allergies,
-    emergency: patient.emergency_contact_phone,
+
+  // STRICT REQUIREMENT: Patient QR MUST NOT contain medical records.
+  // QR should contain ONLY passportToken or encryptedPatientIdentifier
+  const qrValue = JSON.stringify({
+    passportToken: passportToken || patient.patient_id,
+    ...(encryptedId ? { encryptedPatientIdentifier: encryptedId } : {}),
   })
 
   return (
@@ -44,8 +60,12 @@ export function QRPassport({ patient, onClose }: QRPassportProps) {
 
             {/* QR Code */}
             <div className="flex justify-center mb-5">
-              <div className="bg-white p-4 rounded-2xl">
-                <QRCodeSVG value={qrData} size={160} level="H" />
+              <div className="bg-white p-4 rounded-2xl flex items-center justify-center min-w-[192px] min-h-[192px]">
+                {loading ? (
+                  <div className="animate-spin h-8 w-8 border-3 border-primary-200 border-t-primary-600 rounded-full" />
+                ) : (
+                  <QRCodeSVG value={qrValue} size={160} level="H" />
+                )}
               </div>
             </div>
 
@@ -77,7 +97,7 @@ export function QRPassport({ patient, onClose }: QRPassportProps) {
                 </div>
               </div>
 
-              {patient.allergies.length > 0 && (
+              {patient.allergies && patient.allergies.length > 0 && (
                 <div className="pt-3 border-t border-white/15">
                   <p className="text-xs text-error-300 flex items-center gap-1 mb-1">
                     <AlertCircle className="w-3 h-3" /> Allergies
@@ -104,7 +124,7 @@ export function QRPassport({ patient, onClose }: QRPassportProps) {
         </div>
 
         <p className="text-center text-xs text-neutral-400 mt-4">
-          Show this QR code to healthcare providers for instant access to your health information
+          Show this QR code to healthcare providers for secure token-based longitudinal record access
         </p>
       </div>
     </div>

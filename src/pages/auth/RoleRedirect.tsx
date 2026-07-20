@@ -2,7 +2,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
 import { UserRole } from '../../lib/api'
 
-const roleRoutes: Record<UserRole, string> = {
+const roleRoutes: Record<string, string> = {
   patient: '/patient',
   doctor: '/doctor',
   receptionist: '/reception',
@@ -23,5 +23,8 @@ export function RoleRedirect() {
 
   if (!profile) return <Navigate to="/login" replace />
 
-  return <Navigate to={roleRoutes[profile.role]} replace />
+  const roleKey = (profile.role || '').toLowerCase()
+  const target = roleRoutes[roleKey] || (profile as any).redirectTo || (roleKey === 'patient' ? '/patient' : roleKey === 'receptionist' ? '/reception' : roleKey === 'doctor' ? '/doctor' : roleKey === 'laboratory' ? '/lab' : roleKey === 'administrator' ? '/admin' : '/login')
+
+  return <Navigate to={target} replace />
 }

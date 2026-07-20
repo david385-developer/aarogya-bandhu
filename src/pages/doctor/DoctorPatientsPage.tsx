@@ -28,12 +28,14 @@ export function DoctorPatientsPage() {
   }, [])
 
   useEffect(() => {
-    const q = search.toLowerCase()
-    setFiltered(patients.filter(p =>
-      p.full_name.toLowerCase().includes(q) ||
-      p.patient_id.toLowerCase().includes(q) ||
-      (p.email || '').toLowerCase().includes(q)
-    ))
+    const q = (search || '').toLowerCase()
+    setFiltered((patients || []).filter(p => {
+      if (!p) return false
+      const name = (p.full_name || (p as any).fullName || '').toLowerCase()
+      const id = (p.patient_id || (p as any).patientId || '').toLowerCase()
+      const email = (p.email || '').toLowerCase()
+      return name.includes(q) || id.includes(q) || email.includes(q)
+    }))
   }, [search, patients])
 
   return (
@@ -48,28 +50,32 @@ export function DoctorPatientsPage() {
       </div>
 
       {loading ? (
-        <div className="space-y-2.5">
+        <div className="space-y-3">
           {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-16 w-full" />)}
         </div>
       ) : filtered.length === 0 ? (
-        <EmptyState icon={<Users className="w-8 h-8" />} title="No patients found" description={search ? "Try a different search term" : "No patients registered yet"} />
+        <EmptyState icon={<Users className="w-8 h-8" />} title="No patients found" description={search ? "Try a different search" : "No patients assigned"} />
       ) : (
         <div className="space-y-2.5 animate-fade-in">
-          {filtered.map((p) => (
+          {filtered.map((p) => {
+            const pName = p.full_name || (p as any).fullName || 'Patient'
+            const pId = p.patient_id || (p as any).patientId || 'PT-XXXX'
+            const conditions = p.chronic_diseases || (p as any).chronicDiseases || []
+            return (
             <Card key={p.id} hover onClick={() => navigate(`/doctor/workspace/${p.id}`)} className="cursor-pointer">
               <div className="flex items-center gap-3">
                 <div className="w-11 h-11 rounded-full bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-bold flex-shrink-0">
-                  {p.full_name.charAt(0).toUpperCase()}
+                  {pName.charAt(0).toUpperCase()}
                 </div>
                 <div className="flex-1 min-w-0">
-                  <p className="text-sm font-semibold text-neutral-800">{p.full_name}</p>
-                  <p className="text-xs text-neutral-400">{p.patient_id} · {p.blood_group} · {p.gender}</p>
+                  <p className="text-sm font-semibold text-neutral-800">{pName}</p>
+                  <p className="text-xs text-neutral-400">{pId} · {p.email || 'No email'}</p>
                 </div>
-                {p.chronic_diseases.length > 0 && <Badge variant="warning">{p.chronic_diseases.length} chronic</Badge>}
+                {conditions.length > 0 && <Badge variant="warning">{conditions.length} conditions</Badge>}
                 <ChevronRight className="w-4 h-4 text-neutral-300" />
               </div>
             </Card>
-          ))}
+          )})}
         </div>
       )}
     </AppShell>

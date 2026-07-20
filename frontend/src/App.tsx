@@ -44,7 +44,10 @@ function ProtectedRoute({ children, allowedRoles }: { children: React.ReactNode;
   }
 
   if (!profile) return <Navigate to="/login" replace />
-  if (!allowedRoles.includes(profile.role)) return <Navigate to="/redirect" replace />
+
+  const userRoleKey = (profile.role || '').toLowerCase()
+  const allowedKeys = allowedRoles.map(r => (r || '').toLowerCase())
+  if (!allowedKeys.includes(userRoleKey)) return <Navigate to="/redirect" replace />
 
   return <>{children}</>
 }
