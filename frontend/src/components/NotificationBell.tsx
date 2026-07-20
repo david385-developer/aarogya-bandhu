@@ -41,7 +41,7 @@ export function NotificationBell({ className = '' }: { className?: string }) {
       </button>
 
       <Modal
-        isOpen={isOpen}
+        open={isOpen}
         onClose={() => setIsOpen(false)}
         title="Notifications"
       >

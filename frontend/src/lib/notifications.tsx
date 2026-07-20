@@ -33,14 +33,16 @@ export function NotificationProvider({ children }: { children: React.ReactNode }
         api.get('/notifications/me').catch(() => api.get('/notifications').catch(() => ({ data: [] }))),
         api.get('/notifications/me/unread-count').catch(() => api.get('/notifications/unread-count').catch(() => ({ count: 0 }))),
       ])
-      const list = Array.isArray(listRes?.data) ? (listRes.data as Notification[]) : []
+      const listResponse = listRes as { data?: Notification[] } | null | undefined
+      const countResponse = countRes as { count?: number; data?: { count?: number } } | null | undefined
+      const list = Array.isArray(listResponse?.data) ? (listResponse.data as Notification[]) : []
       setNotifications(list)
 
       let count = 0
-      if (typeof countRes?.count === 'number') {
-        count = countRes.count
-      } else if (typeof countRes?.data?.count === 'number') {
-        count = countRes.data.count
+      if (typeof countResponse?.count === 'number') {
+        count = countResponse.count
+      } else if (typeof countResponse?.data?.count === 'number') {
+        count = countResponse.data.count
       } else {
         count = list.filter((n) => !n.is_read && !n.isRead).length
       }
