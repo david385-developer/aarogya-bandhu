@@ -76,15 +76,17 @@ export function ReceptionDashboard() {
       return
     }
     const maxToken = queue.length > 0 ? Math.max(...queue.map(q => q.token_number)) : 0
-    const { error } = await api.post('/queue', {
-      patient_id: selectedPatient.id,
-      doctor_id: assignDoctor,
+    const patientId = selectedPatient.id || (selectedPatient as any)._id || (selectedPatient as any).patientId
+    const doctorId = assignDoctor
+    const { error, message } = await api.post('/queue', {
+      patient_id: patientId,
+      doctor_id: doctorId,
       token_number: maxToken + 1,
       status: 'waiting',
     })
 
     if (error) {
-      toast('Failed to generate token', 'error')
+      toast(message || error || 'Failed to generate token', 'error')
     } else {
       toast(`Token #${maxToken + 1} generated for ${selectedPatient.full_name}`, 'success')
       setShowAssign(false)

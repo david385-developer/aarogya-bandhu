@@ -51,6 +51,12 @@ async function listQueueTokens(req, res) {
 async function createQueueToken(req, res) {
   const rawPatientId = req.body.patient_id || req.body.patientId
   const rawDoctorId = req.body.doctor_id || req.body.doctorId
+  const tokenNumber = Number(req.body.token_number || req.body.tokenNumber || 1)
+  const status = req.body.status || 'waiting'
+
+  if (!rawPatientId) throw new AppError('Patient ID is required', 400)
+  if (!rawDoctorId) throw new AppError('Doctor ID is required', 400)
+  if (!Number.isFinite(tokenNumber) || tokenNumber <= 0) throw new AppError('Token number must be a positive number', 400)
 
   const patient = await resolvePatientProfile(rawPatientId)
   const doctor = await resolveDoctorProfile(rawDoctorId)
@@ -61,12 +67,21 @@ async function createQueueToken(req, res) {
   const payload = {
     patientId: patient._id,
     doctorId: doctor._id,
-    tokenNumber: req.body.token_number || req.body.tokenNumber || 1,
-    status: req.body.status || 'waiting',
+    tokenNumber,
+    status,
   }
 
-  const token = await QueueToken.create(payload)
+  let token
+  try {
+    token = await QueueToken.create(payload)
+  } catch (error) {
+    if (error && error.name === 'ValidationError') {
+      throw new AppError(error.message, 400)
+    }
+    throw error
+  }
   const populated = await QueueToken.findById(token._id).populate('patientId').populate('doctorId')
+  if (!populated) throw new AppError('Queue token could not be created', 500)
 
   const today = new Date().toISOString().split('T')[0]
   if (patient && doctor) {
