@@ -7,7 +7,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { useAuth } from '../../lib/auth'
-import { supabase, Patient, Appointment, Prescription, LabReport, TimelineEvent } from '../../lib/supabase'
+import { api, Patient, Appointment, Prescription, LabReport, TimelineEvent } from '../../lib/api'
 import { QRPassport } from './QRPassport'
 import { AISummary } from './AISummary'
 
@@ -25,11 +25,7 @@ export function PatientDashboard() {
   useEffect(() => {
     (async () => {
       if (!profile?.email) return
-      const { data: pat } = await supabase
-        .from('patients')
-        .select('*')
-        .eq('email', profile.email)
-        .maybeSingle()
+      const { data: pat } = await api.get(`/patients/by-email/${encodeURIComponent(profile.email)}`)
 
       if (!pat) {
         setLoading(false)
@@ -39,16 +35,16 @@ export function PatientDashboard() {
       setPatient(pat as Patient)
 
       const [apptRes, prescRes, labRes, tlRes] = await Promise.all([
-        supabase.from('appointments').select('*, doctors(*)').eq('patient_id', pat.id).order('appointment_date', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('prescriptions').select('*, doctors(*)').eq('patient_id', pat.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('lab_reports').select('*').eq('patient_id', pat.id).order('created_at', { ascending: false }).limit(1).maybeSingle(),
-        supabase.from('timeline_events').select('*').eq('patient_id', pat.id).order('event_date', { ascending: false }).limit(5),
+        api.get(`/appointments?patientId=${pat.id}`),
+        api.get(`/prescriptions?patientId=${pat.id}`),
+        api.get(`/lab-reports?patientId=${pat.id}`),
+        api.get(`/timeline?patientId=${pat.id}`),
       ])
 
-      if (apptRes.data) setAppointment(apptRes.data as Appointment)
-      if (prescRes.data) setPrescription(prescRes.data as Prescription)
-      if (labRes.data) setLabReport(labRes.data as LabReport)
-      if (tlRes.data) setTimeline(tlRes.data as TimelineEvent[])
+      if (apptRes.data && apptRes.data.length > 0) setAppointment(apptRes.data[0] as Appointment)
+      if (prescRes.data && prescRes.data.length > 0) setPrescription(prescRes.data[0] as Prescription)
+      if (labRes.data && labRes.data.length > 0) setLabReport(labRes.data[0] as LabReport)
+      if (tlRes.data) setTimeline(tlRes.data.slice(0, 5) as TimelineEvent[])
       setLoading(false)
     })()
   }, [profile])

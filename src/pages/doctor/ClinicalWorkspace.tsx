@@ -8,7 +8,7 @@ import { Input } from '../../components/ui/Input'
 import { Modal } from '../../components/ui/Modal'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { useToast } from '../../components/ui/Toast'
-import { supabase, Patient, Prescription, LabReport, TimelineEvent } from '../../lib/supabase'
+import { api, Patient, Prescription, LabReport, TimelineEvent } from '../../lib/api'
 
 export function ClinicalWorkspace() {
   const { patientId } = useParams()
@@ -30,14 +30,14 @@ export function ClinicalWorkspace() {
     (async () => {
       if (!patientId) { setLoading(false); return }
 
-      const { data: pat } = await supabase.from('patients').select('*').eq('id', patientId).maybeSingle()
+      const { data: pat } = await api.get(`/patients/${patientId}`)
       if (!pat) { setLoading(false); return }
       setPatient(pat as Patient)
 
       const [prescRes, labRes, tlRes] = await Promise.all([
-        supabase.from('prescriptions').select('*, doctors(*)').eq('patient_id', patientId).order('created_at', { ascending: false }),
-        supabase.from('lab_reports').select('*').eq('patient_id', patientId).order('created_at', { ascending: false }),
-        supabase.from('timeline_events').select('*').eq('patient_id', patientId).order('event_date', { ascending: false }),
+        api.get(`/prescriptions?patientId=${patientId}`),
+        api.get(`/lab-reports?patientId=${patientId}`),
+        api.get(`/timeline?patientId=${patientId}`),
       ])
 
       setPrescriptions(prescRes.data as Prescription[] || [])
@@ -57,11 +57,11 @@ export function ClinicalWorkspace() {
       return
     }
 
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: doc } = await supabase.from('doctors').select('id').eq('email', user?.email).maybeSingle()
+    const { data: { user } } = await api.get('/auth/me')
+    const { data: doc } = await api.get(`/doctors/by-email/${encodeURIComponent(user?.email || '')}`)
 
     const validMeds = medications.filter(m => m.name.trim())
-    const { error } = await supabase.from('prescriptions').insert({
+    const { error } = await api.post('/prescriptions', {
       patient_id: patient.id,
       doctor_id: doc?.id || null,
       medications: validMeds,
@@ -73,15 +73,13 @@ export function ClinicalWorkspace() {
     if (error) {
       toast('Failed to save consultation', 'error')
     } else {
-      await supabase.from('timeline_events').insert({
+      await api.post('/timeline', {
         patient_id: patient.id,
         event_type: 'consultation',
         title: 'Consultation Completed',
         description: diagnosis,
-        doctor_name: user?.user_metadata?.full_name || 'Doctor',
+        doctor_name: user?.full_name || 'Doctor',
         status: 'completed',
-        event_date: new Date().toISOString().split('T')[0],
-        event_time: new Date().toTimeString().slice(0, 5),
       })
 
       toast('Consultation completed successfully', 'success')
@@ -92,8 +90,8 @@ export function ClinicalWorkspace() {
       setFollowUpDate('')
 
       const [prescRes, tlRes] = await Promise.all([
-        supabase.from('prescriptions').select('*, doctors(*)').eq('patient_id', patient.id).order('created_at', { ascending: false }),
-        supabase.from('timeline_events').select('*').eq('patient_id', patient.id).order('event_date', { ascending: false }),
+        api.get(`/prescriptions?patientId=${patient.id}`),
+        api.get(`/timeline?patientId=${patient.id}`),
       ])
       setPrescriptions(prescRes.data as Prescription[] || [])
       setTimeline(tlRes.data as TimelineEvent[] || [])
@@ -503,25 +501,23 @@ function LabRequestForm({ patientId, onDone }: { patientId: string; onDone: () =
       toast('Enter a test name', 'error')
       return
     }
-    const { data: { user } } = await supabase.auth.getUser()
-    const { data: doc } = await supabase.from('doctors').select('id').eq('email', user?.email).maybeSingle()
+    const { data: { user } } = await api.get('/auth/me')
+    const { data: doc } = await api.get(`/doctors/by-email/${encodeURIComponent(user?.email || '')}`)
 
-    await supabase.from('lab_reports').insert({
+    await api.post('/lab-reports', {
       patient_id: patientId,
       doctor_id: doc?.id || null,
       test_name: testName,
       status: 'pending',
     })
 
-    await supabase.from('timeline_events').insert({
+    await api.post('/timeline', {
       patient_id: patientId,
       event_type: 'laboratory',
       title: 'Lab Test Requested',
       description: testName,
-      doctor_name: user?.user_metadata?.full_name || 'Doctor',
+      doctor_name: user?.full_name || 'Doctor',
       status: 'pending',
-      event_date: new Date().toISOString().split('T')[0],
-      event_time: new Date().toTimeString().slice(0, 5),
     })
 
     setTestName('')

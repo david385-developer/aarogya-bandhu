@@ -1,5 +1,5 @@
 import { Sparkles, TrendingUp, CircleAlert as AlertCircle, Heart, Activity } from 'lucide-react'
-import { Patient } from '../../lib/supabase'
+import { Patient } from '../../lib/api'
 
 interface AISummaryProps {
   patient: Patient

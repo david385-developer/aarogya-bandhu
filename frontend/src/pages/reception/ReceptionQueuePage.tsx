@@ -5,7 +5,7 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { supabase, QueueToken, Patient, Doctor } from '../../lib/supabase'
+import { api, QueueToken, Patient, Doctor } from '../../lib/api'
 
 export function ReceptionQueuePage() {
   const [queue, setQueue] = useState<(QueueToken & { patients: Patient; doctors: Doctor })[]>([])
@@ -13,7 +13,7 @@ export function ReceptionQueuePage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('queue_tokens').select('*, patients(*), doctors(*)').order('token_number')
+      const { data } = await api.get('/queue')
       setQueue(data as any || [])
       setLoading(false)
     })()

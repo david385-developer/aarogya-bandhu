@@ -6,7 +6,7 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Button } from '../../components/ui/Button'
 import { useAuth } from '../../lib/auth'
-import { supabase, Patient } from '../../lib/supabase'
+import { api, Patient } from '../../lib/api'
 import { QRPassport } from './QRPassport'
 
 export function ProfilePage() {
@@ -18,7 +18,7 @@ export function ProfilePage() {
   useEffect(() => {
     (async () => {
       if (!profile?.email) return
-      const { data } = await supabase.from('patients').select('*').eq('email', profile.email).maybeSingle()
+      const { data } = await api.get(`/patients/by-email/${encodeURIComponent(profile.email)}`)
       if (data) setPatient(data as Patient)
     })()
   }, [profile])

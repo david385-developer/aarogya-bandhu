@@ -7,7 +7,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useAuth } from '../../lib/auth'
-import { supabase, Patient, Appointment } from '../../lib/supabase'
+import { api, Patient, Appointment } from '../../lib/api'
 
 export function DoctorDashboard() {
   const { profile } = useAuth()
@@ -19,15 +19,10 @@ export function DoctorDashboard() {
   useEffect(() => {
     (async () => {
       if (!profile?.email) return
-      const { data: doc } = await supabase.from('doctors').select('id').eq('email', profile.email).maybeSingle()
+      const { data: doc } = await api.get(`/doctors/by-email/${encodeURIComponent(profile.email)}`)
       if (!doc) { setLoading(false); return }
       setDoctorId(doc.id)
-      const { data } = await supabase
-        .from('appointments')
-        .select('*, patients(*)')
-        .eq('doctor_id', doc.id)
-        .eq('appointment_date', new Date().toISOString().split('T')[0])
-        .order('appointment_time', { ascending: true })
+      const { data } = await api.get(`/appointments?doctorId=${doc.id}&date=${new Date().toISOString().split('T')[0]}`)
       setPatients(data as any || [])
       setLoading(false)
     })()

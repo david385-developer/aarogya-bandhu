@@ -6,7 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useAuth } from '../../lib/auth'
-import { supabase, TimelineEvent } from '../../lib/supabase'
+import { api, TimelineEvent } from '../../lib/api'
 
 const eventConfig: Record<string, { icon: typeof Calendar; color: string; bg: string }> = {
   registration: { icon: UserPlus, color: 'text-primary-600', bg: 'bg-primary-50' },
@@ -28,9 +28,9 @@ export function TimelinePage() {
   useEffect(() => {
     (async () => {
       if (!profile?.email) return
-      const { data: pat } = await supabase.from('patients').select('id').eq('email', profile.email).maybeSingle()
+      const { data: pat } = await api.get(`/patients/by-email/${encodeURIComponent(profile.email)}`)
       if (!pat) { setLoading(false); return }
-      const { data } = await supabase.from('timeline_events').select('*').eq('patient_id', pat.id).order('event_date', { ascending: false })
+      const { data } = await api.get(`/timeline?patientId=${pat.id}`)
       setEvents(data as TimelineEvent[] || [])
       setLoading(false)
     })()

@@ -5,7 +5,7 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
-import { supabase, Appointment, Patient, Doctor } from '../../lib/supabase'
+import { api, Appointment, Patient, Doctor } from '../../lib/api'
 
 export function ReceptionAppointmentsPage() {
   const [appointments, setAppointments] = useState<(Appointment & { patients: Patient; doctors: Doctor })[]>([])
@@ -13,10 +13,7 @@ export function ReceptionAppointmentsPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase
-        .from('appointments')
-        .select('*, patients(*), doctors(*)')
-        .order('appointment_date', { ascending: false })
+      const { data } = await api.get('/appointments')
       setAppointments(data as any || [])
       setLoading(false)
     })()

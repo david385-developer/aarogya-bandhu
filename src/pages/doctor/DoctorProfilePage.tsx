@@ -5,7 +5,7 @@ import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { useAuth } from '../../lib/auth'
 import { useEffect, useState } from 'react'
-import { supabase, Doctor } from '../../lib/supabase'
+import { api, Doctor } from '../../lib/api'
 
 export function DoctorProfilePage() {
   const { profile, signOut } = useAuth()
@@ -15,7 +15,7 @@ export function DoctorProfilePage() {
   useEffect(() => {
     (async () => {
       if (!profile?.email) return
-      const { data } = await supabase.from('doctors').select('*').eq('email', profile.email).maybeSingle()
+      const { data } = await api.get(`/doctors/by-email/${encodeURIComponent(profile.email)}`)
       if (data) setDoctor(data as Doctor)
     })()
   }, [profile])

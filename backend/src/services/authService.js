@@ -2,6 +2,7 @@ const bcrypt = require('bcryptjs')
 const crypto = require('crypto')
 const User = require('../models/User')
 const PatientProfile = require('../models/PatientProfile')
+const DoctorProfile = require('../models/DoctorProfile')
 const RefreshToken = require('../models/RefreshToken')
 const { ROLES } = require('../constants/roles')
 const { AppError } = require('../utils/appError')
@@ -90,6 +91,17 @@ async function register(payload) {
       title: 'Welcome to Arogya Bandhu',
       message: 'Your patient profile and QR passport are ready.',
     })
+  } else if (payload.role === ROLES.DOCTOR) {
+    const doctorCount = await DoctorProfile.countDocuments()
+    profile = await DoctorProfile.create({
+      userId: user._id,
+      doctorId: `DR-${String(doctorCount + 1).padStart(5, '0')}`,
+      fullName: payload.fullName,
+      email: payload.email,
+      phone: payload.phone || null,
+      specialization: 'General Medicine',
+      department: 'General Medicine',
+    })
   }
 
   const accessToken = signAccessToken({ sub: String(user._id), role: user.role })
@@ -142,6 +154,20 @@ async function getCurrentUser(userId) {
   let profile = null
   if (user.role === ROLES.PATIENT) {
     profile = await PatientProfile.findOne({ userId: user._id })
+  } else if (user.role === ROLES.DOCTOR) {
+    profile = await DoctorProfile.findOne({ userId: user._id })
+    if (!profile) {
+      const doctorCount = await DoctorProfile.countDocuments()
+      profile = await DoctorProfile.create({
+        userId: user._id,
+        doctorId: `DR-${String(doctorCount + 1).padStart(5, '0')}`,
+        fullName: user.fullName,
+        email: user.email,
+        phone: user.phone || null,
+        specialization: 'General Medicine',
+        department: 'General Medicine',
+      })
+    }
   }
 
   return {

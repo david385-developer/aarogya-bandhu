@@ -6,7 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useAuth } from '../../lib/auth'
-import { supabase, Prescription, LabReport } from '../../lib/supabase'
+import { api, Prescription, LabReport } from '../../lib/api'
 import { Modal } from '../../components/ui/Modal'
 import { Button } from '../../components/ui/Button'
 
@@ -22,11 +22,11 @@ export function MedicalRecordsPage() {
   useEffect(() => {
     (async () => {
       if (!profile?.email) return
-      const { data: pat } = await supabase.from('patients').select('id').eq('email', profile.email).maybeSingle()
+      const { data: pat } = await api.get(`/patients/by-email/${encodeURIComponent(profile.email)}`)
       if (!pat) { setLoading(false); return }
       const [prescRes, labRes] = await Promise.all([
-        supabase.from('prescriptions').select('*, doctors(*)').eq('patient_id', pat.id).order('created_at', { ascending: false }),
-        supabase.from('lab_reports').select('*').eq('patient_id', pat.id).order('created_at', { ascending: false }),
+        api.get(`/prescriptions?patientId=${pat.id}`),
+        api.get(`/lab-reports?patientId=${pat.id}`),
       ])
       setPrescriptions(prescRes.data as Prescription[] || [])
       setLabReports(labRes.data as LabReport[] || [])

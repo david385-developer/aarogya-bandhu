@@ -10,7 +10,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useToast } from '../../components/ui/Toast'
-import { supabase, Patient, Doctor, QueueToken } from '../../lib/supabase'
+import { api, Patient, Doctor, QueueToken } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 export function ReceptionDashboard() {
@@ -30,9 +30,9 @@ export function ReceptionDashboard() {
   useEffect(() => {
     (async () => {
       const [patRes, docRes, qRes] = await Promise.all([
-        supabase.from('patients').select('*').order('full_name'),
-        supabase.from('doctors').select('*'),
-        supabase.from('queue_tokens').select('*, patients(*), doctors(*)').eq('status', 'waiting').order('token_number'),
+        api.get('/patients'),
+        api.get('/doctors'),
+        api.get('/queue?status=waiting'),
       ])
       setPatients(patRes.data as Patient[] || [])
       setFiltered(patRes.data as Patient[] || [])
@@ -53,7 +53,7 @@ export function ReceptionDashboard() {
       return
     }
     const maxToken = queue.length > 0 ? Math.max(...queue.map(q => q.token_number)) : 0
-    const { error } = await supabase.from('queue_tokens').insert({
+    const { error } = await api.post('/queue', {
       patient_id: selectedPatient.id,
       doctor_id: assignDoctor,
       token_number: maxToken + 1,
@@ -66,7 +66,7 @@ export function ReceptionDashboard() {
       toast(`Token #${maxToken + 1} generated for ${selectedPatient.full_name}`, 'success')
       setShowAssign(false)
       setAssignDoctor('')
-      const { data } = await supabase.from('queue_tokens').select('*, patients(*), doctors(*)').eq('status', 'waiting').order('token_number')
+      const { data } = await api.get('/queue?status=waiting')
       setQueue(data as any || [])
     }
   }

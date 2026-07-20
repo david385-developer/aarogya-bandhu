@@ -8,7 +8,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useAuth } from '../../lib/auth'
-import { supabase, Patient } from '../../lib/supabase'
+import { api, Patient } from '../../lib/api'
 
 export function DoctorPatientsPage() {
   const { profile } = useAuth()
@@ -20,7 +20,7 @@ export function DoctorPatientsPage() {
 
   useEffect(() => {
     (async () => {
-      const { data } = await supabase.from('patients').select('*').order('full_name')
+      const { data } = await api.get('/patients')
       setPatients(data as Patient[] || [])
       setFiltered(data as Patient[] || [])
       setLoading(false)

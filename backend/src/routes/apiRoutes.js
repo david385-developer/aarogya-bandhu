@@ -1,0 +1,26 @@
+const express = require('express')
+const { authRoutes } = require('./authRoutes')
+const { passportRoutes } = require('./passportRoutes')
+const { patientRoutes } = require('./patientRoutes')
+const { doctorRoutes } = require('./doctorRoutes')
+const { appointmentRoutes } = require('./appointmentRoutes')
+const { prescriptionRoutes } = require('./prescriptionRoutes')
+const { labReportRoutes } = require('./labReportRoutes')
+const { timelineRoutes } = require('./timelineRoutes')
+const { notificationRoutes } = require('./notificationRoutes')
+const { queueRoutes } = require('./queueRoutes')
+
+const apiRoutes = express.Router()
+
+apiRoutes.use('/auth', authRoutes)
+apiRoutes.use('/passport', passportRoutes)
+apiRoutes.use('/patients', patientRoutes)
+apiRoutes.use('/doctors', doctorRoutes)
+apiRoutes.use('/appointments', appointmentRoutes)
+apiRoutes.use('/prescriptions', prescriptionRoutes)
+apiRoutes.use('/lab-reports', labReportRoutes)
+apiRoutes.use('/timeline', timelineRoutes)
+apiRoutes.use('/notifications', notificationRoutes)
+apiRoutes.use('/queue', queueRoutes)
+
+module.exports = { apiRoutes }

@@ -9,7 +9,7 @@ import { Modal } from '../../components/ui/Modal'
 import { Skeleton, SkeletonCard } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useToast } from '../../components/ui/Toast'
-import { supabase, LabReport, Patient } from '../../lib/supabase'
+import { api, LabReport, Patient } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 export function LabDashboard() {
@@ -28,7 +28,7 @@ export function LabDashboard() {
   }, [])
 
   const fetchReports = async () => {
-    const { data } = await supabase.from('lab_reports').select('*, patients(*)').order('created_at', { ascending: false })
+    const { data } = await api.get('/lab-reports')
     setReports(data as any || [])
     setLoading(false)
   }
@@ -47,24 +47,22 @@ export function LabDashboard() {
       if (key && value) resultObj[key] = value
     })
 
-    const { error } = await supabase.from('lab_reports').update({
+    const { error } = await api.patch(`/lab-reports/${selectedReport.id}`, {
       result: resultObj,
       status: 'completed',
       completed_at: new Date().toISOString(),
       notes,
-    }).eq('id', selectedReport.id)
+    })
 
     if (error) {
       toast('Failed to upload result', 'error')
     } else {
-      await supabase.from('timeline_events').insert({
+      await api.post('/timeline', {
         patient_id: selectedReport.patient_id,
         event_type: 'report',
         title: 'Lab Report Available',
         description: selectedReport.test_name,
         status: 'completed',
-        event_date: new Date().toISOString().split('T')[0],
-        event_time: new Date().toTimeString().slice(0, 5),
       })
       toast('Report uploaded successfully', 'success')
       setShowUpload(false)
@@ -76,7 +74,7 @@ export function LabDashboard() {
   }
 
   const verifyReport = async (id: string) => {
-    await supabase.from('lab_reports').update({ status: 'verified' }).eq('id', id)
+    await api.patch(`/lab-reports/${id}`, { status: 'verified' })
     toast('Report verified', 'success')
     fetchReports()
   }

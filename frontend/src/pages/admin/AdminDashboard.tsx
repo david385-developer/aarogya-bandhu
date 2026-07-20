@@ -4,7 +4,7 @@ import { AppShell } from '../../components/AppShell'
 import { Card } from '../../components/ui/Card'
 import { Badge } from '../../components/ui/Badge'
 import { Skeleton } from '../../components/ui/Skeleton'
-import { supabase } from '../../lib/supabase'
+import { api } from '../../lib/api'
 import { useAuth } from '../../lib/auth'
 
 export function AdminDashboard() {
@@ -14,21 +14,22 @@ export function AdminDashboard() {
 
   useEffect(() => {
     (async () => {
-      const [patRes, docRes, apptRes, prescRes, labRes, pendLabRes] = await Promise.all([
-        supabase.from('patients').select('id', { count: 'exact', head: true }),
-        supabase.from('doctors').select('id', { count: 'exact', head: true }),
-        supabase.from('appointments').select('id', { count: 'exact', head: true }),
-        supabase.from('prescriptions').select('id', { count: 'exact', head: true }),
-        supabase.from('lab_reports').select('id', { count: 'exact', head: true }),
-        supabase.from('lab_reports').select('id', { count: 'exact', head: true }).eq('status', 'pending'),
+      const [patRes, docRes, apptRes, prescRes, labRes] = await Promise.all([
+        api.get('/patients'),
+        api.get('/doctors'),
+        api.get('/appointments'),
+        api.get('/prescriptions'),
+        api.get('/lab-reports'),
       ])
+      const labReports = (labRes.data as any[]) || []
+      const pendingLabs = labReports.filter(r => r.status === 'pending').length
       setStats({
-        patients: patRes.count || 0,
-        doctors: docRes.count || 0,
-        appointments: apptRes.count || 0,
-        prescriptions: prescRes.count || 0,
-        labReports: labRes.count || 0,
-        pendingLabs: pendLabRes.count || 0,
+        patients: (patRes.data as any[])?.length || 0,
+        doctors: (docRes.data as any[])?.length || 0,
+        appointments: (apptRes.data as any[])?.length || 0,
+        prescriptions: (prescRes.data as any[])?.length || 0,
+        labReports: labReports.length,
+        pendingLabs,
       })
       setLoading(false)
     })()

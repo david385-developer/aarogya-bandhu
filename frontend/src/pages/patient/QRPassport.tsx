@@ -1,6 +1,6 @@
 import { QRCodeSVG } from 'qrcode.react'
 import { X, Heart, Phone, Droplet, CircleAlert as AlertCircle, Activity } from 'lucide-react'
-import { Patient } from '../../lib/supabase'
+import { Patient } from '../../lib/api'
 
 interface QRPassportProps {
   patient: Patient

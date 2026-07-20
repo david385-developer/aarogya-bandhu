@@ -4,6 +4,7 @@ const helmet = require('helmet')
 const morgan = require('morgan')
 
 const { authRoutes } = require('./routes/authRoutes')
+const { apiRoutes } = require('./routes/apiRoutes')
 const { errorHandler } = require('./middleware/errorHandler')
 
 function createApp() {
@@ -20,6 +21,7 @@ function createApp() {
   })
 
   app.use('/auth', authRoutes)
+  app.use('/api/v1', apiRoutes)
 
   app.use(errorHandler)
 

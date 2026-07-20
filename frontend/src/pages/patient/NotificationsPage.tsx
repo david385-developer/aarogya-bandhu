@@ -6,7 +6,7 @@ import { Badge } from '../../components/ui/Badge'
 import { Skeleton } from '../../components/ui/Skeleton'
 import { EmptyState } from '../../components/ui/EmptyState'
 import { useAuth } from '../../lib/auth'
-import { supabase, Notification } from '../../lib/supabase'
+import { api, Notification } from '../../lib/api'
 
 const typeConfig: Record<string, { icon: typeof Bell; color: string; bg: string }> = {
   appointment: { icon: Calendar, color: 'text-primary-600', bg: 'bg-primary-50' },
@@ -25,19 +25,19 @@ export function NotificationsPage() {
   useEffect(() => {
     (async () => {
       if (!profile?.id) return
-      const { data } = await supabase.from('notifications').select('*').eq('user_id', profile.id).order('created_at', { ascending: false })
+      const { data } = await api.get('/notifications')
       setNotifications(data as Notification[] || [])
       setLoading(false)
     })()
   }, [profile])
 
   const markAsRead = async (id: string) => {
-    await supabase.from('notifications').update({ is_read: true }).eq('id', id)
+    await api.patch(`/notifications/${id}`, { is_read: true })
     setNotifications(prev => prev.map(n => n.id === id ? { ...n, is_read: true } : n))
   }
 
   const deleteNotif = async (id: string) => {
-    await supabase.from('notifications').delete().eq('id', id)
+    await api.delete(`/notifications/${id}`)
     setNotifications(prev => prev.filter(n => n.id !== id))
   }
 
