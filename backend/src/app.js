@@ -33,8 +33,11 @@ function createApp() {
   app.use(express.urlencoded({ extended: true }))
   app.use(morgan('dev'))
 
-  app.get('/health', (_req, res) => {
-    res.json({ success: true, service: 'arogya-bandhu-backend' })
+  app.get(['/', '/health'], (_req, res) => {
+    res.json({ success: true, service: 'arogya-bandhu-backend', status: 'operational', version: '1.0.0' })
+  })
+  app.head(['/', '/health'], (_req, res) => {
+    res.status(200).end()
   })
 
   app.use('/auth', authRoutes)
