@@ -1,7 +1,7 @@
 import { Routes, Route, Navigate } from 'react-router-dom'
 import { AuthProvider, useAuth } from './lib/auth'
 import { ToastProvider } from './components/ui/Toast'
-import { UserRole } from './lib/supabase'
+import { UserRole } from './lib/api'
 
 import { LoginPage } from './pages/auth/LoginPage'
 import { RegisterPage } from './pages/auth/RegisterPage'

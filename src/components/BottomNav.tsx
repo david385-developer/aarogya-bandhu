@@ -1,6 +1,6 @@
 import { useLocation, useNavigate } from 'react-router-dom'
 import { Chrome as Home, Clock, FileText, Bell, User, LayoutDashboard, Users, Stethoscope, ClipboardList, FlaskConical, ChartBar as BarChart3, Settings, CalendarDays } from 'lucide-react'
-import { UserRole } from '../lib/supabase'
+import { UserRole } from '../lib/api'
 
 interface NavItem {
   label: string

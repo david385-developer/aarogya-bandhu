@@ -1,6 +1,6 @@
 import { Navigate } from 'react-router-dom'
 import { useAuth } from '../../lib/auth'
-import { UserRole } from '../../lib/supabase'
+import { UserRole } from '../../lib/api'
 
 const roleRoutes: Record<UserRole, string> = {
   patient: '/patient',

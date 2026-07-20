@@ -10,8 +10,24 @@ const { errorHandler } = require('./middleware/errorHandler')
 function createApp() {
   const app = express()
 
-  app.use(helmet())
-  app.use(cors({ origin: true, credentials: true }))
+  const allowedOrigins = [
+    process.env.FRONTEND_URL,
+    'http://localhost:5173',
+    'http://localhost:3000',
+  ].filter(Boolean)
+
+  app.use(cors({
+    origin: (origin, callback) => {
+      if (!origin || allowedOrigins.includes(origin) || origin.endsWith('.vercel.app')) {
+        callback(null, true)
+      } else {
+        callback(new Error('CORS Policy: Origin not allowed'))
+      }
+    },
+    methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
+    allowedHeaders: ['Authorization', 'Content-Type'],
+    credentials: true,
+  }))
   app.use(express.json({ limit: '2mb' }))
   app.use(express.urlencoded({ extended: true }))
   app.use(morgan('dev'))

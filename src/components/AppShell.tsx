@@ -1,7 +1,7 @@
 import { ReactNode } from 'react'
 import { useAuth } from '../lib/auth'
 import { BottomNav } from './BottomNav'
-import { UserRole } from '../lib/supabase'
+import { UserRole } from '../lib/api'
 
 interface AppShellProps {
   role: UserRole

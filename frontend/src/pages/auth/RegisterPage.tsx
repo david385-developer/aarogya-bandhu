@@ -5,7 +5,7 @@ import { useAuth } from '../../lib/auth'
 import { Button } from '../../components/ui/Button'
 import { Input } from '../../components/ui/Input'
 import { useToast } from '../../components/ui/Toast'
-import { UserRole } from '../../lib/supabase'
+import { UserRole } from '../../lib/api'
 
 const roles: { value: UserRole; label: string; description: string }[] = [
   { value: 'patient', label: 'Patient', description: 'Access your health records' },
